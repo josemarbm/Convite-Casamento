@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # Backend Flask API
+  backend:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: wedding-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - EVOLUTION_API_URL=http://evolution-api:8080
+      - EVOLUTION_API_KEY=12345
+      - EVOLUTION_SESSION_ID=default
+      - FLASK_SECRET_KEY=wedding-invitation-secret-key-change-in-prod
+      - DATABASE_URL=mysql+pymysql://wedding_user:wedding_pass_2024@mysql:3306/wedding_invites
+      - FLASK_ENV=production
+    volumes:
+      - backend_uploads:/app/uploads
+    networks:
+      - wedding-network
+    restart: unless-stopped
+    command: python app.py
+    # Removed depends_on mysql because it is in another compose file (cannot hard dependency check easily without hacks, but backend retries connection usually)
+    # Actually, we can checking using wait-for-it or just rely on backend retry loop.
+
+  # Frontend Nginx
+  frontend:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: wedding-frontend
+    ports:
+      - "3000:80"
+    networks:
+      - wedding-network
+    volumes:
+      - ./web:/usr/share/nginx/html
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+volumes:
+  backend_uploads:
+    driver: local
+
+networks:
+  wedding-network:
+    external: true
+    name: wedding_shared_net

@@ -1,0 +1,52 @@
+# Ambientes virtuais
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Arquivos de configuração locais
+.env.local
+.env.development
+.env.production
+
+# Logs
+*.log
+
+# Arquivos temporários
+*.tmp
+*.temp
+
+# Arquivos de backup
+*-bkp.*
+*.old
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Documentação
+README.md
+*.md
+
+# Makefile
+Makefile
+
+# Arquivos desnecessários para o container
+app-bkp.py
+app.old
+app_pt_br.py
+convidados-oficial.xlsx
+copy_DEAC4773-C653-4D4E-9B00-481B87F94FAF.mp4:Zone.Identifier
+env.sh
