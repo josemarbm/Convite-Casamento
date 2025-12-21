@@ -2,10 +2,21 @@
 
 Sistema completo containerizado com Docker Compose para envio de convites de casamento via WhatsApp.
 
+![Imagem do sistema](./docs/dashboard.png)
+
+## 📦 Pré-requisitos
+
+- Docker
+- Docker Compose
+- EvolutionAPI
+
 ## 🚀 Início Rápido
+
+Crie a rede docker e suba o sistema
 
 ```bash
 # 1. Subir todo o sistema
+docker network create wedding_shared_net
 make docker-up
 
 # 2. Acessar aplicação
