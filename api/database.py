@@ -1,10 +1,19 @@
 import os
-from models import db, Guest, MessageTemplate, Group, ScheduledSend, Settings
+from models import db, Guest, MessageTemplate, Group, ScheduledSend, Settings, User
 
 def init_db(app):
     """Initialize the database and create all tables"""
     with app.app_context():
         db.create_all()
+        
+        # Create default user if none exists
+        if User.query.count() == 0:
+            default_user = User(
+                username='admin',
+                email='admin@casamento.com'
+            )
+            default_user.set_password('admin123')
+            db.session.add(default_user)
         
         # Create default message template if none exists
         if MessageTemplate.query.count() == 0:

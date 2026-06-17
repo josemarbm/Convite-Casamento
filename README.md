@@ -20,18 +20,35 @@ docker network create wedding_shared_net
 make docker-up
 
 # 2. Acessar aplicação
-# Frontend: http://localhost:3000
-# Backend:  http://localhost:5000
-# Manager:  http://localhost:8080/manager
+# Frontend: http://localhost:3000/login.html
+# Swagger: http://localhost:5000/docs
+# Backend:  http://localhost:5000/api
 ```
+
+### 🔑 Credenciais Padrão
+```
+Usuário: admin
+Senha: admin123
+```
+
+## 📚 Documentação
+
+| Documento | Descrição |
+|-----------|-----------|
+| **[QUICK_START.md](QUICK_START.md)** | ⭐ Comece aqui! |
+| **[SWAGGER_DOCS.md](SWAGGER_DOCS.md)** | 📖 Documentação API Swagger |
+| **[AUTH_SETUP.md](AUTH_SETUP.md)** | 🔐 Sistema de autenticação |
+| **[LOGIN_GUIDE.md](LOGIN_GUIDE.md)** | 🔑 Guia de login |
+| **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** | 📝 Detalhes técnicos |
 
 ## 📦 O que está incluído?
 
-- ✅ **Backend Flask** (API REST completa)
-- ✅ **Frontend Nginx** (Interface web moderna)
+- ✅ **Backend Flask** (API REST completa com autenticação JWT)
+- ✅ **Frontend Nginx** (Interface web moderna com login)
 - ✅ **EvolutionAPI** (Integração WhatsApp)
 - ✅ **Volumes persistentes** (Dados salvos)
 - ✅ **Network isolada** (Comunicação segura)
+- ✅ **Swagger/OpenAPI** (Documentação automática da API)
 
 ## 🎯 Arquitetura
 
@@ -40,10 +57,13 @@ make docker-up
 │      Docker Compose Stack        │
 │                                  │
 │  Frontend (Nginx) :3000          │
+│  Login + Dashboard               │
 │         ↓                        │
 │  Backend (Flask) :5000           │
+│  API REST + Swagger Docs         │
 │         ↓                        │
 │  EvolutionAPI :8080              │
+│  WhatsApp Integration            │
 └──────────────────────────────────┘
 ```
 

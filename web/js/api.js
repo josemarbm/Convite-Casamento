@@ -8,6 +8,19 @@ class APIClient {
         this.baseURL = API_BASE;
     }
 
+    getAuthHeaders() {
+        const token = localStorage.getItem('auth_token');
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        return headers;
+    }
+
     async request(endpoint, options = {}) {
         const url = `${this.baseURL}${endpoint}`;
         
@@ -15,10 +28,18 @@ class APIClient {
             const response = await fetch(url, {
                 ...options,
                 headers: {
-                    'Content-Type': 'application/json',
+                    ...this.getAuthHeaders(),
                     ...options.headers
                 }
             });
+
+            // Handle unauthorized (token expired or invalid)
+            if (response.status === 401) {
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user');
+                window.location.href = '/login.html';
+                throw new Error('Session expired. Please login again.');
+            }
 
             if (!response.ok) {
                 const error = await response.json();
@@ -68,8 +89,17 @@ class APIClient {
 
         const response = await fetch(`${this.baseURL}/guests/import`, {
             method: 'POST',
-            body: formData
+            body: formData,
+            headers: this.getAuthHeaders()
         });
+
+        // Handle unauthorized
+        if (response.status === 401) {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            window.location.href = '/login.html';
+            throw new Error('Session expired. Please login again.');
+        }
 
         if (!response.ok) {
             const error = await response.json();
@@ -80,7 +110,28 @@ class APIClient {
     }
 
     async exportGuests() {
-        const response = await fetch(`${this.baseURL}/guests/export`);
+        const token = localStorage.getItem('auth_token');
+        const headers = {};
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`${this.baseURL}/guests/export`, {
+            headers: headers
+        });
+
+        // Handle unauthorized
+        if (response.status === 401) {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            window.location.href = '/login.html';
+            throw new Error('Session expired. Please login again.');
+        }
+
+        if (!response.ok) {
+            throw new Error('Export failed');
+        }
+
         const blob = await response.blob();
         return blob;
     }
