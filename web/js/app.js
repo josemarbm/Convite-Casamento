@@ -12,12 +12,34 @@ let currentEditingId = null;
 let currentEditingTemplateId = null;
 let currentTheme = localStorage.getItem('theme') || 'dark';
 
+// ===== Authentication Check =====
+function checkAuthentication() {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+        window.location.href = '/login.html';
+        return false;
+    }
+    return true;
+}
+
+function logout() {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
+    window.location.href = '/login.html';
+}
+
 // ===== Initialize App =====
 document.addEventListener('DOMContentLoaded', async () => {
+    // Check authentication first
+    if (!checkAuthentication()) {
+        return;
+    }
+
     applyTheme(currentTheme);
     initializeTabs();
     await loadInitialData();
     setupEventListeners();
+    addLogoutButton();
 });
 
 // ===== Theme Management =====
@@ -779,3 +801,38 @@ document.addEventListener('keydown', (e) => {
         }
     }
 });
+
+// ===== Authentication UI =====
+function addLogoutButton() {
+    const headerContent = document.querySelector('.header-content');
+    if (!headerContent) return;
+    
+    // Create logout button container
+    const logoutContainer = document.createElement('div');
+    logoutContainer.style.display = 'flex';
+    logoutContainer.style.alignItems = 'center';
+    logoutContainer.style.gap = '1rem';
+    
+    // Add user info
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const userInfo = document.createElement('span');
+    userInfo.style.fontSize = '0.9rem';
+    userInfo.style.color = 'var(--text-secondary)';
+    userInfo.textContent = `👤 ${user.username || 'Usuário'}`;
+    
+    // Add logout button
+    const logoutBtn = document.createElement('button');
+    logoutBtn.className = 'btn btn-sm btn-secondary';
+    logoutBtn.textContent = 'Sair';
+    logoutBtn.onclick = logout;
+    logoutBtn.style.marginLeft = '0.5rem';
+    
+    logoutContainer.appendChild(userInfo);
+    logoutContainer.appendChild(logoutBtn);
+    
+    // Insert after theme toggle
+    const themeToggle = document.querySelector('.theme-toggle');
+    if (themeToggle && themeToggle.parentElement) {
+        themeToggle.parentElement.appendChild(logoutContainer);
+    }
+}
