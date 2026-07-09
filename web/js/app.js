@@ -743,18 +743,36 @@ async function loadSettings() {
         document.getElementById('session-id').value = settings.evolution_session_id || '';
         document.getElementById('api-key').value = settings.evolution_api_key || '';
         document.getElementById('image-path').value = settings.image_path || '';
+        // Load couple name: prefer backend, fallback to localStorage, fallback to default
+        const coupleName = settings.couple_name || localStorage.getItem('couple_name') || 'Gabriela & Josemar';
+        const coupleInput = document.getElementById('couple-name');
+        if (coupleInput) coupleInput.value = coupleName;
+        updateCoupleNameDisplay(coupleName);
     } catch (error) {
         console.error('Error loading settings:', error);
+        const fallbackName = localStorage.getItem('couple_name') || 'Gabriela & Josemar';
+        const coupleInput = document.getElementById('couple-name');
+        if (coupleInput) coupleInput.value = fallbackName;
+        updateCoupleNameDisplay(fallbackName);
     }
 }
 
 async function saveSettings() {
+    const coupleName = document.getElementById('couple-name')?.value || '';
     const settings = {
         evolution_api_url: document.getElementById('server-url').value,
         evolution_session_id: document.getElementById('session-id').value,
         evolution_api_key: document.getElementById('api-key').value,
-        image_path: document.getElementById('image-path').value
+        image_path: document.getElementById('image-path').value,
+        couple_name: coupleName
     };
+    // Persist locally as a fallback
+    try {
+        localStorage.setItem('couple_name', coupleName);
+    } catch (e) {
+        // ignore storage errors
+    }
+    updateCoupleNameDisplay(coupleName || 'Gabriela & Josemar');
     
     showLoading(true);
     
@@ -766,6 +784,13 @@ async function saveSettings() {
     } finally {
         showLoading(false);
     }
+}
+
+// Update the header subtitle with the couple name
+function updateCoupleNameDisplay(name) {
+    const el = document.getElementById('couple-name-display');
+    if (!el) return;
+    el.textContent = name || 'Gabriela & Josemar';
 }
 
 // ===== Utility Functions =====

@@ -20,7 +20,7 @@
         <div class="header-content">
           <div>
             <h1 class="logo">💍 Convites de Casamento</h1>
-            <p class="subtitle">Gabriela & Josemar</p>
+            <p class="subtitle" id="couple-name-display">Gabriela & Josemar</p>
           </div>
           <button class="theme-toggle" onclick="toggleTheme()" title="Alternar tema">
             <span id="theme-icon">☀️</span>
@@ -259,6 +259,16 @@
                 id="api-key"
                 class="form-input"
                 placeholder="12345"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="couple-name">Nome do Casal</label>
+              <input
+                type="text"
+                id="couple-name"
+                class="form-input"
+                placeholder="Gabriela & Josemar"
               />
             </div>
 

@@ -42,11 +42,28 @@ class APIClient {
             }
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Request failed');
+                // Try to parse JSON error body, otherwise use generic message
+                let errMsg = 'Request failed';
+                try {
+                    const errorBody = await response.json();
+                    errMsg = errorBody.error || JSON.stringify(errorBody) || errMsg;
+                } catch (e) {
+                    // ignore JSON parse errors
+                }
+                throw new Error(errMsg);
             }
 
-            return await response.json();
+            // If no content
+            if (response.status === 204) return {};
+
+            // Only parse JSON when Content-Type indicates JSON
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                return await response.json();
+            }
+
+            // Fallback: return text
+            return await response.text();
         } catch (error) {
             console.error(`API Error [${endpoint}]:`, error);
             throw error;
@@ -220,9 +237,14 @@ class APIClient {
         const formData = new FormData();
         formData.append('file', file);
 
+        const headers = {};
+        const token = localStorage.getItem('auth_token');
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
         const response = await fetch(`${this.baseURL}/images/upload`, {
             method: 'POST',
-            body: formData
+            body: formData,
+            headers: headers
         });
 
         if (!response.ok) {

@@ -51,7 +51,8 @@ _Gabriela & Josemar_ 💍💍""",
             'evolution_api_key': os.getenv('EVOLUTION_API_KEY', '12345'),
             'evolution_session_id': os.getenv('EVOLUTION_SESSION_ID', 'default'),
             'image_path': 'convite.png',
-            'theme': 'dark'
+            'theme': 'dark',
+            'couple_name': os.getenv('COUPLE_NAME', 'Gabriela & Josemar')
         }
         
         for key, value in default_settings.items():
