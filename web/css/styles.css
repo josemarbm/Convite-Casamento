@@ -1,30 +1,53 @@
 /* ===== CSS Variables & Design System ===== */
 :root {
-  /* Colors - Vibrant Dark Theme */
-  --primary: #8b5cf6;
-  --primary-dark: #7c3aed;
-  --primary-light: #a78bfa;
-  --secondary: #ec4899;
+  /* ===== NEW DESIGN SYSTEM TOKENS ===== */
+  /* Backgrounds */
+  --bg-page: #f5f3ff;
+  --bg-surface: rgba(255, 255, 255, 0.82);
+  --bg-elevated: #ffffff;
+  
+  /* Colors - Semantic */
+  --primary: #7c3aed;
+  --primary-strong: #5b21b6;
+  --accent: #ec4899;
   --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
+  
+  /* Text */
+  --text-strong: #1f2937;
+  --text-muted: #64748b;
+  
+  /* Borders & Shadows */
+  --border: rgba(148, 163, 184, 0.2);
+  --shadow-soft: 0 12px 35px rgba(124, 58, 237, 0.12);
+  
+  /* Spacing & Radius */
+  --radius-lg: 22px;
+  --radius-md: 16px;
+  --radius-sm: 10px;
 
+  /* ===== EXTENDED COMPATIBILITY TOKENS ===== */
+  /* Primary & Secondary */
+  --primary-dark: #5b21b6;
+  --primary-light: #a78bfa;
+  --secondary: #ec4899;
+  
   /* Gradients */
   --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
   --gradient-success: linear-gradient(135deg, #4ade80 0%, #22d3ee 100%);
   --gradient-bg: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
 
-  /* Backgrounds */
+  /* Dark Theme Backgrounds (used in dark mode) */
   --bg-primary: #0f172a;
   --bg-secondary: #1e293b;
   --bg-card: rgba(30, 41, 59, 0.6);
   --bg-overlay: rgba(15, 23, 42, 0.9);
 
-  /* Text */
+  /* Text (dark theme) */
   --text-primary: #f1f5f9;
   --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
 
   /* Misc */
   --border-radius: 16px;
@@ -44,6 +67,15 @@
   /* Typography */
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
+
+  /* ===== COMPATIBILITY ALIASES ===== */
+  /* Map old variable names to new design system tokens */
+  --primary-color: var(--primary);
+  --accent-color: var(--accent);
+  --surface-color: var(--bg-elevated);
+  --text-color: var(--text-strong);
+  --border-color: var(--border);
+  --input-background: var(--bg-elevated);
 }
 
 /* ===== Reset & Base Styles ===== */
