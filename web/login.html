@@ -13,208 +13,34 @@
     <link rel="stylesheet" href="css/styles.css" />
     <link rel="stylesheet" href="css/enhancements.css" />
     <style>
-      /* ===== Login Page Styles ===== */
       body {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
         margin: 0;
+        padding: 0;
         background: var(--gradient-bg);
         font-family: var(--font-sans);
-      }
-
-      .login-container {
-        background: var(--bg-elevated);
-        padding: var(--spacing-lg);
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-soft);
-        width: 100%;
-        max-width: 400px;
-        border: 1px solid var(--border);
-        animation: fadeIn 0.6s ease-out;
-      }
-
-      .login-header {
-        text-align: center;
-        margin-bottom: var(--spacing-lg);
-      }
-
-      .login-header h1 {
-        font-size: 2rem;
-        margin: 0;
-        background: var(--gradient-primary);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-      }
-
-      .login-header p {
-        font-size: 0.9rem;
-        color: var(--text-muted);
-        margin: var(--spacing-sm) 0 0 0;
-      }
-
-      .form-group {
-        margin-bottom: var(--spacing-md);
-      }
-
-      .form-group label {
-        display: block;
-        margin-bottom: var(--spacing-xs);
-        font-weight: 500;
-        color: var(--text-strong);
-      }
-
-      .form-group input {
-        width: 100%;
-        padding: var(--spacing-sm);
-        border: 2px solid var(--border);
-        border-radius: var(--radius-sm);
-        font-size: 1rem;
-        transition: all 0.3s ease;
-        background: var(--bg-surface);
-        color: var(--text-strong);
-        box-sizing: border-box;
-        font-family: var(--font-sans);
-      }
-
-      .form-group input:focus {
-        outline: none;
-        border-color: var(--primary);
-        box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
-        background: var(--bg-elevated);
-      }
-
-      .form-group input::placeholder {
-        color: var(--text-muted);
-      }
-
-      .submit-btn {
-        width: 100%;
-        padding: var(--spacing-sm);
-        background: var(--gradient-primary);
-        color: white;
-        border: none;
-        border-radius: var(--radius-sm);
-        font-size: 1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        margin-top: var(--spacing-md);
-        box-shadow: var(--shadow-soft);
-      }
-
-      .submit-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
-      }
-
-      .submit-btn:active {
-        transform: translateY(0);
-      }
-
-      .submit-btn:disabled {
-        opacity: 0.7;
-        cursor: not-allowed;
-        transform: none;
-      }
-
-      .toggle-form {
-        text-align: center;
-        margin-top: var(--spacing-md);
-        font-size: 0.9rem;
-      }
-
-      .toggle-form a {
-        color: var(--primary);
-        text-decoration: none;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-      }
-
-      .toggle-form a:hover {
-        color: var(--primary-strong);
-        text-decoration: underline;
-      }
-
-      .message {
-        padding: var(--spacing-sm);
-        border-radius: var(--radius-sm);
-        margin-bottom: var(--spacing-md);
-        display: none;
-        text-align: center;
-        font-size: 0.9rem;
-        border: 1px solid;
-        animation: slideDown 0.3s ease-out;
-      }
-
-      .message.show {
-        display: block;
-      }
-
-      .message.error {
-        background: rgba(239, 68, 68, 0.1);
-        color: var(--danger);
-        border-color: var(--danger);
-      }
-
-      .message.success {
-        background: rgba(16, 185, 129, 0.1);
-        color: var(--success);
-        border-color: var(--success);
-      }
-
-      .loading-spinner {
-        display: inline-block;
-        width: 16px;
-        height: 16px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-radius: 50%;
-        border-top-color: white;
-        animation: spin 0.8s linear infinite;
-      }
-
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-
-      @keyframes slideDown {
-        from {
-          opacity: 0;
-          transform: translateY(-10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      /* Light theme overrides */
-      [data-theme="light"] {
-        --bg-page: #f8fafc;
-        --bg-surface: #f1f5f9;
-        --bg-elevated: #ffffff;
-        --text-strong: #1e293b;
-        --text-muted: #64748b;
-        --border: rgba(100, 116, 139, 0.2);
+        min-height: 100vh;
       }
     </style>
   </head>
   <body>
-    <div class="login-container">
-      <!-- Login Form -->
-      <div id="login-form-container" class="form-container">
+    <div class="login-shell">
+      <!-- Hero Section -->
+      <aside class="login-hero">
+        <span class="brand-badge">💍 Casamento</span>
+        <h1>Gerencie os convites com calma</h1>
+        <p>Centralize convidados, mensagens e envios em uma interface elegante e clara.</p>
+      </aside>
+
+      <!-- Login Panel -->
+      <section class="login-panel">
         <div class="login-header">
-          <h1>💍</h1>
-          <h1>Convites</h1>
-          <p>Sistema de Casamento</p>
+          <h2>Bem-vindo de volta</h2>
+          <p>Acesse sua conta para continuar</p>
         </div>
 
         <div id="login-message" class="message"></div>
 
-        <form id="login-form">
+        <form id="login-form" class="login-form">
           <div class="form-group">
             <label for="login-username">Usuário</label>
             <input
@@ -241,7 +67,7 @@
             Entrar
           </button>
         </form>
-      </div>
+      </section>
     </div>
 
     <script>
