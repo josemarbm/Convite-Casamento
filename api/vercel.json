@@ -1,4 +1,5 @@
 {
+  "root": ".", 
   "version": 2,
   "services": {
     "convite-casamento-api": {
