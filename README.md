@@ -323,3 +323,13 @@ Problemas? Verifique:
 ---
 
 Desenvolvido com ❤️ para Gabriela & Josemar 💍
+
+## ✨ UI Modernization
+
+The frontend has undergone a significant UI modernization, focusing on an enhanced User Experience (UX), improved responsiveness, and visual clarity. Key updates include:
+
+- **Modern Visual Style:** A refreshed design system has been implemented for a contemporary look and feel.
+- **Theme Switching:** Users can now toggle between dark and light modes to suit their preferences.
+- **Improved Navigation:** The navigation has been streamlined for easier access to different sections of the application.
+
+*(Consider adding screenshots here to visually demonstrate the new UI.)*

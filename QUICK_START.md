@@ -188,3 +188,5 @@ Para dúvidas, consulte:
 
 Data: 16 de Junho de 2026  
 Status: ✅ Pronto para Produção
+
+**Note:** The frontend has been modernized with a focus on UX, responsiveness, and visual clarity, featuring a new visual style and theme switching capabilities.
