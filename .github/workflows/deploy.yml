@@ -104,7 +104,7 @@ jobs:
           echo "🔗 API: $API_URL"
 
           vercel deploy \
-            --prod
+            --prod \
             --yes \
             --token="$VERCEL_TOKEN" \
             --project="$VERCEL_PROJECT_ID"
