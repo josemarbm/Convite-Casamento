@@ -1,0 +1,72 @@
+name: CI/CD Vercel
+
+on:
+  push:
+    branches: ["main", "develop", "feature/*"]
+  pull_request:
+    types: [opened, synchronize]
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  build-and-test:
+    name: Validate HTML
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate web directory
+        run: |
+          test -f web/index.html || {
+            echo "❌ web/index.html não encontrado"
+            exit 1
+          }
+
+          echo "✅ Aplicação HTML encontrada"
+          find web -maxdepth 2 -type f | sort
+
+  deploy-preview:
+    name: Deploy Preview
+    needs: build-and-test
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Deploy Preview
+        working-directory: web
+        run: |
+          vercel deploy \
+            --yes \
+            --token=${{ secrets.VERCEL_TOKEN }}
+
+  deploy-production:
+    name: Deploy Production
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Deploy Production
+        working-directory: web
+        run: |
+          vercel deploy \
+            --prod \
+            --yes \
+            --token=${{ secrets.VERCEL_TOKEN }}

@@ -487,3 +487,61 @@
     max-width: 100%;
   }
 }
+
+/* Mobile Responsiveness (at max-width: 768px) */
+@media (max-width: 768px) {
+  .tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr)); /* Example: 2 columns for tabs */
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+  }
+  .tab-btn {
+    min-width: auto; /* Allow buttons to shrink */
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr; /* Single column for stats */
+  }
+
+  .header-content {
+    flex-direction: column; /* Stack logo and theme toggle */
+    gap: var(--spacing-sm);
+  }
+
+  .search-filters {
+    grid-template-columns: 1fr; /* Stack filters on mobile */
+  }
+
+  .groups-grid,
+  .templates-grid {
+    grid-template-columns: 1fr; /* Single column for cards */
+  }
+
+  .pagination-controls {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .login-shell {
+    flex-direction: column; /* Stack hero and panel on mobile */
+  }
+
+  .login-hero {
+    min-height: 280px; /* Adjust height for mobile */
+    justify-content: flex-end; /* Align content to bottom */
+  }
+
+  .login-hero h1 {
+    font-size: 2rem; /* Smaller font on mobile */
+  }
+
+  .login-panel {
+    min-height: auto; /* Adjust height for mobile */
+  }
+}
+
+/* Ensure elements don't overflow */
+.container, .card, .table-container {
+  overflow-x: auto; /* Allow horizontal scroll if content exceeds width */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
