@@ -45,15 +45,6 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
         run: |
-          if [ -z "$VERCEL_TOKEN" ]; then
-            echo "❌ VERCEL_TOKEN não configurado"
-            exit 1
-          fi
-
-          if [ -z "$VERCEL_API_PROJECT_ID" ]; then
-            echo "❌ VERCEL_API_PROJECT_ID não configurado"
-            exit 1
-          fi
 
           echo "🚀 Deploy da API..."
 
@@ -61,7 +52,7 @@ jobs:
             --prod \
             --yes \
             --token="$VERCEL_TOKEN" \
-            --project="$VERCEL_API_PROJECT_ID")
+            --project="$VERCEL_PROJECT_ID")
 
           echo "======================================"
           echo "API URL:"
