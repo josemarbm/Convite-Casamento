@@ -22,44 +22,44 @@ jobs:
   # API - PRODUCTION
   # ============================================================
 
-  deploy-api-production:
-    name: Deploy API Production
-    runs-on: ubuntu-latest
-    environment: Production
+  # deploy-api-production:
+  #   name: Deploy API Production
+  #   runs-on: ubuntu-latest
+  #   environment: Production
 
-    outputs:
-      api_url: ${{ steps.deploy.outputs.api_url }}
+  #   outputs:
+  #     api_url: ${{ steps.deploy.outputs.api_url }}
 
-    steps:
+  #   steps:
 
-      - name: Checkout
-        uses: actions/checkout@v6
+  #     - name: Checkout
+  #       uses: actions/checkout@v6
 
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+  #     - name: Install Vercel CLI
+  #       run: npm install --global vercel@latest
 
-      - name: Deploy API Production
-        id: deploy
-        working-directory: api
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
-        run: |
+  #     - name: Deploy API Production
+  #       id: deploy
+  #       working-directory: api
+  #       env:
+  #         VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  #         VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
+  #       run: |
 
-          echo "🚀 Deploy da API..."
+  #         echo "🚀 Deploy da API..."
 
-          API_URL=$(vercel deploy \
-            --prod \
-            --yes \
-            --token="$VERCEL_TOKEN" \
-            --project="$VERCEL_PROJECT_ID")
+  #         API_URL=$(vercel deploy \
+  #           --prod \
+  #           --yes \
+  #           --token="$VERCEL_TOKEN" \
+  #           --project="$VERCEL_PROJECT_ID")
 
-          echo "======================================"
-          echo "API URL:"
-          echo "$API_URL"
-          echo "======================================"
+  #         echo "======================================"
+  #         echo "API URL:"
+  #         echo "$API_URL"
+  #         echo "======================================"
 
-          echo "api_url=$API_URL" >> "$GITHUB_OUTPUT"
+  #         echo "api_url=$API_URL" >> "$GITHUB_OUTPUT"
 
 
   # ============================================================
@@ -68,8 +68,6 @@ jobs:
 
   deploy-preview:
     name: Deploy Preview
-    needs:
-      - deploy-api-production
 
     runs-on: ubuntu-latest
     environment: Production
@@ -82,7 +80,6 @@ jobs:
       - name: Show API URL
         run: |
           echo "🔗 API URL:"
-          echo "${{ needs.deploy-api-production.outputs.api_url }}"
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
@@ -92,7 +89,6 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          API_URL: ${{ needs.deploy-api-production.outputs.api_url }}
         run: |
           if [ -z "$VERCEL_TOKEN" ]; then
             echo "❌ VERCEL_TOKEN não configurado"
@@ -113,6 +109,7 @@ jobs:
           echo "🔗 API: $API_URL"
 
           vercel deploy \
+            --prod
             --yes \
             --token="$VERCEL_TOKEN" \
             --project="$VERCEL_PROJECT_ID"
@@ -124,8 +121,6 @@ jobs:
 
   deploy-production:
     name: Deploy Web Production
-    needs:
-      - deploy-api-production
 
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
@@ -144,8 +139,8 @@ jobs:
         working-directory: web
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
-          API_URL: ${{ needs.deploy-api-production.outputs.api_url }}
+          # VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
+          # API_URL: ${{ needs.deploy-api-production.outputs.api_url }}
         run: |
           if [ -z "$VERCEL_TOKEN" ]; then
             echo "❌ VERCEL_TOKEN não configurado"
