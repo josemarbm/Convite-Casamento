@@ -397,9 +397,9 @@ body {
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.1); /* var(--bg-surface-alpha-10) */
   color: var(--text-primary);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2); /* var(--border-light) */
 }
 
 .btn-danger {
@@ -437,12 +437,12 @@ body {
   text-align: left;
   font-weight: 600;
   color: var(--text-primary);
-  border-bottom: 2px solid rgba(139, 92, 246, 0.5);
+  border-bottom: 2px solid rgba(139, 92, 246, 0.5); /* var(--primary-alpha-50) */
 }
 
 .guests-table td {
   padding: var(--spacing-md);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* var(--border-light) */
   color: var(--text-secondary);
 }
 
@@ -463,15 +463,15 @@ body {
 }
 
 .status-pending {
-  background: rgba(245, 158, 11, 0.2);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.2); /* var(--warning-alpha-20) */
+  color: var(--warning);
+  border: 1px solid rgba(245, 158, 11, 0.3); /* var(--warning-alpha-30) */
 }
 
 .status-sent {
-  background: rgba(16, 185, 129, 0.2);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.2); /* var(--success-alpha-20) */
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.3); /* var(--success-alpha-30) */
 }
 
 .table-actions {
@@ -510,8 +510,8 @@ body {
 .message-textarea {
   width: 100%;
   padding: var(--spacing-sm);
-  background: rgba(255, 255, 255, 0.05);
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05); /* var(--bg-surface-alpha-5) */
+  border: 2px solid rgba(255, 255, 255, 0.1); /* var(--border-light) */
   border-radius: var(--border-radius-sm);
   color: var(--text-primary);
   font-family: var(--font-sans);
@@ -523,8 +523,8 @@ body {
 .message-textarea:focus {
   outline: none;
   border-color: var(--primary);
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+  background: rgba(255, 255, 255, 0.08); /* var(--bg-surface-alpha-8) */
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2); /* var(--primary-alpha-20) */
 }
 
 .message-textarea {
@@ -602,7 +602,7 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: var(--bg-overlay);
+  background: var(--bg-overlay); /* Dark overlay */
   backdrop-filter: blur(10px);
   z-index: 1000;
   align-items: center;
@@ -615,8 +615,8 @@ body {
 }
 
 .modal-content {
-  background: var(--bg-secondary);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-secondary); /* Use secondary background */
+  border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border */
   border-radius: var(--border-radius);
   padding: var(--spacing-lg);
   max-width: 500px;
