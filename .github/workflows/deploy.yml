@@ -100,11 +100,6 @@ jobs:
             exit 1
           fi
 
-          if [ -z "$API_URL" ]; then
-            echo "❌ API_URL não foi recebido do job deploy-api-production"
-            exit 1
-          fi
-
           echo "🚀 Deploy Web Preview"
           echo "🔗 API: $API_URL"
 
