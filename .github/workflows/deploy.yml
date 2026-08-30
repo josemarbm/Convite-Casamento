@@ -2,65 +2,147 @@ name: CI/CD Vercel
 
 on:
   push:
-    branches: ["main", "develop", "feature/*"]
+    branches:
+      - main
+      - develop
+      - "feature/*"
+
   pull_request:
-    types: [opened, synchronize]
+    types:
+      - opened
+      - synchronize
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
-
 jobs:
-  build-and-test:
-    name: Validate HTML
-    timeout-minutes: 10
-    runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+  # ============================================================
+  # API - PRODUCTION
+  # ============================================================
 
-      - name: Validate web directory
-        run: |
-          test -f web/index.html || {
-            echo "❌ web/index.html não encontrado"
-            exit 1
-          }
-
-          echo "✅ Aplicação HTML encontrada"
-          find web -maxdepth 2 -type f | sort
-
-  deploy-preview:
-    name: Deploy Preview
-    needs: build-and-test
-    
-    # if: github.event_name == 'pull_request'
+  deploy-api-production:
+    name: Deploy API Production
     runs-on: ubuntu-latest
     environment: Production
 
+    outputs:
+      api_url: ${{ steps.deploy.outputs.api_url }}
+
     steps:
+
       - name: Checkout
         uses: actions/checkout@v6
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
-      - name: Deploy Preview
-        working-directory: web
+      - name: Deploy API Production
+        id: deploy
+        working-directory: api
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
         run: |
-          vercel deploy \
-            --yes \
-            --token=${{ secrets.VERCEL_TOKEN }}
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "❌ VERCEL_TOKEN não configurado"
+            exit 1
+          fi
 
-  deploy-production:
-    name: Deploy Production
-    needs: build-and-test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+          if [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "❌ VERCEL_API_PROJECT_ID não configurado"
+            exit 1
+          fi
+
+          echo "🚀 Deploy da API..."
+
+          API_URL=$(vercel deploy \
+            --prod \
+            --yes \
+            --token="$VERCEL_TOKEN" \
+            --project="$VERCEL_PROJECT_ID")
+
+          echo "======================================"
+          echo "API URL:"
+          echo "$API_URL"
+          echo "======================================"
+
+          echo "api_url=$API_URL" >> "$GITHUB_OUTPUT"
+
+
+  # ============================================================
+  # WEB - PREVIEW
+  # ============================================================
+
+  deploy-preview:
+    name: Deploy Preview
+    needs:
+      - deploy-api-production
+
     runs-on: ubuntu-latest
     environment: Production
 
     steps:
+
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Show API URL
+        run: |
+          echo "🔗 API URL:"
+          echo "${{ needs.deploy-api-production.outputs.api_url }}"
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Deploy Preview
+        working-directory: web
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          API_URL: ${{ needs.deploy-api-production.outputs.api_url }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "❌ VERCEL_TOKEN não configurado"
+            exit 1
+          fi
+
+          if [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "❌ VERCEL_WEB_PROJECT_ID não configurado"
+            exit 1
+          fi
+
+          if [ -z "$API_URL" ]; then
+            echo "❌ API_URL não foi recebido do job deploy-api-production"
+            exit 1
+          fi
+
+          echo "🚀 Deploy Web Preview"
+          echo "🔗 API: $API_URL"
+
+          vercel deploy \
+            --yes \
+            --token="$VERCEL_TOKEN" \
+            --project="$VERCEL_PROJECT_ID"
+
+
+  # ============================================================
+  # WEB - PRODUCTION
+  # ============================================================
+
+  deploy-production:
+    name: Deploy Web Production
+    needs:
+      - deploy-api-production
+
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    runs-on: ubuntu-latest
+    environment: Production
+
+    steps:
+
       - name: Checkout
         uses: actions/checkout@v6
 
@@ -69,8 +151,26 @@ jobs:
 
       - name: Deploy Production
         working-directory: web
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
+          API_URL: ${{ needs.deploy-api-production.outputs.api_url }}
         run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "❌ VERCEL_TOKEN não configurado"
+            exit 1
+          fi
+
+          if [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "❌ VERCEL_WEB_PROJECT_ID não configurado"
+            exit 1
+          fi
+
+          echo "🚀 Deploy Web Production"
+          echo "🔗 API: $API_URL"
+
           vercel deploy \
             --prod \
             --yes \
-            --token=${{ secrets.VERCEL_TOKEN }}
+            --token="$VERCEL_TOKEN" \
+            --project="$VERCEL_PROJECT_ID"
