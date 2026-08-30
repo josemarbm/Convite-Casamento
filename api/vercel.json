@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "services": {
+    "convite-casamento-api": {
+      "runtime": "container"
+    }
+  }
+}
