@@ -33,7 +33,8 @@ jobs:
   deploy-preview:
     name: Deploy Preview
     needs: build-and-test
-    if: github.event_name == 'pull_request'
+    
+    # if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
