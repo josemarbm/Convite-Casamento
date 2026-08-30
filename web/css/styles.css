@@ -22,6 +22,16 @@
   --border: rgba(148, 163, 184, 0.2);
   --shadow-soft: 0 12px 35px rgba(124, 58, 237, 0.12);
   
+  /* Color Alpha Tokens */
+  --primary-alpha-10: rgba(124, 58, 237, 0.1);
+  --primary-alpha-15: rgba(124, 58, 237, 0.15);
+  --primary-alpha-30: rgba(124, 58, 237, 0.3);
+  --accent-alpha-10: rgba(236, 72, 153, 0.1);
+  --accent-alpha-30: rgba(236, 72, 153, 0.3);
+  --danger-alpha-20: rgba(239, 68, 68, 0.2);
+  --danger-alpha-30: rgba(239, 68, 68, 0.3);
+  --overlay-dark: rgba(0, 0, 0, 0.7);
+  
   /* Spacing & Radius */
   --radius-lg: 22px;
   --radius-md: 16px;
@@ -171,7 +181,7 @@ body {
 }
 
 .tab-btn:hover {
-  background: rgba(139, 92, 246, 0.1);
+  background: var(--primary-alpha-10);
   transform: translateY(-2px);
 }
 
