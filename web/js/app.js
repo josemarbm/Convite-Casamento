@@ -44,6 +44,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadInitialData();
     setupEventListeners();
     addLogoutButton();
+
+    window.addEventListener('storage', (event) => {
+        if (event.key === 'wedding_rsvp_updated') {
+            updateDashboard();
+        }
+    });
+
+    setInterval(() => {
+        updateDashboard();
+    }, 15000);
 });
 
 // ===== Theme Management =====

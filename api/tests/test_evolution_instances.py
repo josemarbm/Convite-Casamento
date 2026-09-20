@@ -91,6 +91,30 @@ class EvolutionRoutesTest(unittest.TestCase):
         response = self.client.post('/api/evolution/instances', json={'name': 'Nome inválido'}, headers=self.headers)
         self.assertEqual(response.status_code, 400)
 
+    @patch('app.get_whatsapp_service')
+    def test_send_direct_requires_an_active_instance(self, get_service):
+        service = Mock()
+        service.session_id = ''
+        service.image_path = '/tmp/convite.png'
+        service._ensure_initialized.return_value = None
+        get_service.return_value = service
+
+        with app.app_context():
+            guest = Guest(name='Convidado sem instância', phone='5511999999999')
+            db.session.add(guest)
+            db.session.commit()
+
+            template = MessageTemplate.query.filter_by(is_default=True).first()
+            if template is None:
+                template = MessageTemplate(name='Padrão', content='Oi {nome}', is_default=True)
+                db.session.add(template)
+                db.session.commit()
+
+        response = self.client.post('/api/send/direct', json={'template_id': template.id, 'filters': {}}, headers=self.headers)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('instância ativa', response.get_json()['error'].lower())
+
     def test_public_rsvp_is_immutable_after_the_first_response(self):
         token = 'individual-rsvp-token-for-test'
         with app.app_context():

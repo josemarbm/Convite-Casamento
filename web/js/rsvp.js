@@ -25,7 +25,11 @@ async function submit(response) {
   content.textContent = 'Registrando sua resposta…';
   try {
     const data = await rsvpRequest('POST', { response });
-    renderRecorded(data.status);
+    localStorage.setItem('wedding_rsvp_updated', JSON.stringify({
+      status: data.status,
+      timestamp: Date.now()
+    }));
+    renderRecorded(data.status, data.guest_name || '');
   } catch (error) {
     content.textContent = error.message;
   }

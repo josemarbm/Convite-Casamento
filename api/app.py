@@ -809,10 +809,15 @@ def send_direct(current_user):
         if not guests:
             return jsonify({'error': 'No guests found'}), 400
 
-        # Convites are sent with an image attachment. Do not mark guests as failed
-        # one by one when the configured attachment was never uploaded.
+        # Guard against sending without an active WhatsApp instance or image.
         whatsapp = get_whatsapp_service()
         whatsapp._ensure_initialized()
+
+        if not whatsapp.session_id or not str(whatsapp.session_id).strip():
+            return jsonify({
+                'error': 'Nenhuma instância ativa do WhatsApp foi configurada. Ative uma instância em Configurações antes de enviar os convites.'
+            }), 400
+
         if not whatsapp.image_path or not os.path.isfile(whatsapp.image_path):
             return jsonify({
                 'error': 'Imagem do convite não encontrada. Vá em Configurações e faça o upload da imagem antes de enviar.'
