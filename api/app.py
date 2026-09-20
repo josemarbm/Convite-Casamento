@@ -3,12 +3,17 @@ from flask import request, jsonify, send_file
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
+import re
+import hashlib
+import secrets
+from urllib.parse import quote
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 from functools import wraps
 import jwt
 import pandas as pd
 from io import BytesIO
+from PIL import Image, UnidentifiedImageError
 
 # Load environment variables
 load_dotenv()
@@ -86,7 +91,7 @@ def token_required(f):
         
         try:
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-            current_user = User.query.get(data['user_id'])
+            current_user = db.session.get(User, data['user_id'])
             
             if not current_user or not current_user.is_active:
                 return jsonify({'error': 'User not found or inactive'}), 401
@@ -283,6 +288,7 @@ def get_guests(current_user):
         per_page = request.args.get('per_page', 50, type=int)
         search = request.args.get('search', '', type=str)
         status = request.args.get('status', '', type=str)
+        rsvp_status = request.args.get('rsvp_status', '', type=str)
         group_id = request.args.get('group_id', '', type=str)
         
         # Build query
@@ -293,6 +299,8 @@ def get_guests(current_user):
             query = query.filter(Guest.name.contains(search) | Guest.phone.contains(search))
         if status:
             query = query.filter_by(status=status)
+        if rsvp_status in {'pending', 'confirmed', 'declined'}:
+            query = query.filter_by(rsvp_status=rsvp_status)
         if group_id:
             query = query.filter_by(group_id=int(group_id))
         
@@ -743,6 +751,22 @@ def delete_group(current_user, group_id):
 
 # ===== SENDING ENDPOINTS =====
 
+def create_rsvp_url(guest):
+    """Create a one-time RSVP link; only its SHA-256 digest is persisted."""
+    token = secrets.token_urlsafe(32)
+    guest.rsvp_token_hash = hashlib.sha256(token.encode()).hexdigest()
+    guest.rsvp_status = 'pending'
+    guest.rsvp_responded_at = None
+    base_url = os.getenv('PUBLIC_APP_URL', 'http://192.168.0.216:3000').rstrip('/')
+    return f'{base_url}/rsvp.html?token={quote(token)}'
+
+def render_invitation_message(template_content, guest):
+    rsvp_url = create_rsvp_url(guest)
+    message = template_content.replace('{nome}', guest.name).replace('{confirmacao_url}', rsvp_url)
+    if '{confirmacao_url}' not in template_content:
+        message += f'\n\n👉 Confirme sua presença: {rsvp_url}'
+    return message
+
 @app.route('/api/send/direct', methods=['POST'])
 @token_required
 def send_direct(current_user):
@@ -756,7 +780,7 @@ def send_direct(current_user):
         filters = data.get('filters', {})
         
         # Get template
-        template = MessageTemplate.query.get(template_id) if template_id else MessageTemplate.query.filter_by(is_default=True).first()
+        template = db.session.get(MessageTemplate, template_id) if template_id else MessageTemplate.query.filter_by(is_default=True).first()
         
         if not template:
             return jsonify({'error': 'No template found'}), 400
@@ -784,13 +808,21 @@ def send_direct(current_user):
         
         if not guests:
             return jsonify({'error': 'No guests found'}), 400
+
+        # Convites are sent with an image attachment. Do not mark guests as failed
+        # one by one when the configured attachment was never uploaded.
+        whatsapp = get_whatsapp_service()
+        whatsapp._ensure_initialized()
+        if not whatsapp.image_path or not os.path.isfile(whatsapp.image_path):
+            return jsonify({
+                'error': 'Imagem do convite não encontrada. Vá em Configurações e faça o upload da imagem antes de enviar.'
+            }), 400
         
         # Send to each guest
         results = []
         for guest in guests:
-            message = template.content.replace('{nome}', guest.name)
+            message = render_invitation_message(template.content, guest)
             
-            whatsapp = get_whatsapp_service()
             result = whatsapp.send_message(
                 phone=guest.phone,
                 message=message,
@@ -822,12 +854,53 @@ def send_direct(current_user):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+# ===== PUBLIC RSVP ENDPOINTS =====
+
+def guest_from_rsvp_token(token):
+    if not token or len(token) > 256:
+        return None
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    return Guest.query.filter_by(rsvp_token_hash=token_hash).first()
+
+@app.route('/api/rsvp/<string:token>', methods=['GET'])
+def get_rsvp(token):
+    guest = guest_from_rsvp_token(token)
+    if not guest:
+        return jsonify({'error': 'Link de confirmação inválido.'}), 404
+    return jsonify({
+        'guest_name': guest.name,
+        'status': guest.rsvp_status or 'pending',
+        'responded_at': guest.rsvp_responded_at.isoformat() if guest.rsvp_responded_at else None
+    })
+
+@app.route('/api/rsvp/<string:token>', methods=['POST'])
+def submit_rsvp(token):
+    guest = guest_from_rsvp_token(token)
+    if not guest:
+        return jsonify({'error': 'Link de confirmação inválido.'}), 404
+    if guest.rsvp_status in {'confirmed', 'declined'}:
+        return jsonify({'error': 'Esta resposta já foi registrada e não pode ser alterada.', 'status': guest.rsvp_status}), 409
+    response = (request.get_json(silent=True) or {}).get('response')
+    if response not in {'confirmed', 'declined'}:
+        return jsonify({'error': 'Resposta inválida.'}), 400
+    guest.rsvp_status = response
+    guest.rsvp_responded_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({'message': 'Resposta registrada com sucesso.', 'status': guest.rsvp_status})
+
 @app.route('/api/send/schedule', methods=['POST'])
 @token_required
 def schedule_send(current_user):
     """Schedule a send for later"""
     try:
         data = request.get_json()
+
+        whatsapp = get_whatsapp_service()
+        whatsapp._ensure_initialized()
+        if not whatsapp.image_path or not os.path.isfile(whatsapp.image_path):
+            return jsonify({
+                'error': 'Imagem do convite não encontrada. Faça o upload da imagem em Configurações antes de agendar envios.'
+            }), 400
         
         scheduled_time = datetime.fromisoformat(data['scheduled_time'].replace('Z', '+00:00'))
         filters = data.get('filters', {})
@@ -928,6 +1001,18 @@ def upload_image(current_user):
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
         
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+        extension = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+        if extension not in allowed_extensions:
+            return jsonify({'error': 'Envie uma imagem PNG, JPG, JPEG, GIF ou WEBP.'}), 400
+
+        try:
+            image = Image.open(file.stream)
+            image.verify()
+            file.stream.seek(0)
+        except (UnidentifiedImageError, OSError):
+            return jsonify({'error': 'O arquivo enviado não é uma imagem válida.'}), 400
+
         # Secure filename
         filename = secure_filename(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -998,6 +1083,87 @@ def update_settings(current_user):
 
 # ===== UTILITY ENDPOINTS =====
 
+def evolution_error_response(result):
+    """Keep upstream errors useful without leaking credentials or raw internals."""
+    return jsonify({'error': result.get('error', 'Evolution API request failed')}), result.get('status_code', 502)
+
+def valid_instance_name(name):
+    return isinstance(name, str) and bool(re.fullmatch(r'[a-z0-9]+', name))
+
+@app.route('/api/evolution/instances', methods=['GET'])
+@token_required
+def list_evolution_instances(current_user):
+    result = get_whatsapp_service().list_instances()
+    if not result['success']:
+        return evolution_error_response(result)
+    active_name = get_whatsapp_service().session_id
+    return jsonify({'instances': [dict(instance, active=instance['name'] == active_name) for instance in result['data']]})
+
+@app.route('/api/evolution/instances', methods=['POST'])
+@token_required
+def create_evolution_instance(current_user):
+    data = request.get_json(silent=True) or {}
+    name = data.get('name')
+    if not valid_instance_name(name):
+        return jsonify({'error': 'O nome deve conter somente letras minúsculas e números.'}), 400
+    result = get_whatsapp_service().create_instance(name)
+    if not result['success']:
+        return evolution_error_response(result)
+    # The creation response can include an instance token; never forward it to the browser.
+    return jsonify({'message': 'Instância criada com sucesso.', 'instance': {'name': name}}), 201
+
+@app.route('/api/evolution/instances/<string:name>/connection', methods=['GET'])
+@token_required
+def evolution_connection(current_user, name):
+    if not valid_instance_name(name):
+        return jsonify({'error': 'Nome de instância inválido.'}), 400
+    result = get_whatsapp_service().get_connection(name)
+    if not result['success']:
+        return evolution_error_response(result)
+    return jsonify({'connection': result['data']})
+
+@app.route('/api/evolution/instances/<string:name>/qr', methods=['GET'])
+@token_required
+def evolution_qr(current_user, name):
+    if not valid_instance_name(name):
+        return jsonify({'error': 'Nome de instância inválido.'}), 400
+    result = get_whatsapp_service().get_qr_code(name)
+    if not result['success']:
+        return evolution_error_response(result)
+    return jsonify({'qr': result['data']})
+
+@app.route('/api/evolution/instances/<string:name>/logout', methods=['DELETE'])
+@token_required
+def evolution_logout(current_user, name):
+    if not valid_instance_name(name):
+        return jsonify({'error': 'Nome de instância inválido.'}), 400
+    result = get_whatsapp_service().logout_instance(name)
+    if not result['success']:
+        return evolution_error_response(result)
+    return jsonify({'message': 'Instância desconectada.', 'result': result['data']})
+
+@app.route('/api/evolution/instances/<string:name>', methods=['DELETE'])
+@token_required
+def evolution_delete(current_user, name):
+    if not valid_instance_name(name):
+        return jsonify({'error': 'Nome de instância inválido.'}), 400
+    result = get_whatsapp_service().delete_instance(name)
+    if not result['success']:
+        return evolution_error_response(result)
+    if get_whatsapp_service().session_id == name:
+        set_setting('evolution_session_id', '')
+        get_whatsapp_service().session_id = ''
+    return jsonify({'message': 'Instância excluída.', 'result': result['data']})
+
+@app.route('/api/evolution/instances/<string:name>/activate', methods=['POST'])
+@token_required
+def activate_evolution_instance(current_user, name):
+    if not valid_instance_name(name):
+        return jsonify({'error': 'Nome de instância inválido.'}), 400
+    set_setting('evolution_session_id', name)
+    get_whatsapp_service().update_settings(session_id=name)
+    return jsonify({'message': 'Instância ativa atualizada.', 'active_instance': name})
+
 @app.route('/api/test-connection', methods=['GET'])
 @token_required
 def test_connection(current_user):
@@ -1041,6 +1207,8 @@ def get_stats(current_user):
     sent = Guest.query.filter_by(status='sent').count()
     pending = Guest.query.filter_by(status='pending').count()
     failed = Guest.query.filter_by(status='failed').count()
+    confirmed_rsvps = Guest.query.filter_by(rsvp_status='confirmed').count()
+    declined_rsvps = Guest.query.filter_by(rsvp_status='declined').count()
     groups_count = Group.query.count()
     templates_count = MessageTemplate.query.count()
     
@@ -1049,6 +1217,8 @@ def get_stats(current_user):
         'sent': sent,
         'pending': pending,
         'failed': failed,
+        'confirmed_rsvps': confirmed_rsvps,
+        'declined_rsvps': declined_rsvps,
         'groups': groups_count,
         'templates': templates_count
     })

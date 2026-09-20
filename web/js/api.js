@@ -1,7 +1,5 @@
 // API Client for Backend Communication
-const API_BASE = window.location.hostname === 'localhost' 
-    ? 'http://localhost:5000/api' 
-    : 'http://backend:5000/api';
+const API_BASE = '/api';
 
 class APIClient {
     constructor() {
@@ -270,6 +268,38 @@ class APIClient {
     // ===== Utility =====
     async testConnection() {
         return this.request('/test-connection');
+    }
+
+    // ===== Evolution API instances =====
+    async getEvolutionInstances() {
+        return this.request('/evolution/instances');
+    }
+
+    async createEvolutionInstance(name) {
+        return this.request('/evolution/instances', {
+            method: 'POST',
+            body: JSON.stringify({ name })
+        });
+    }
+
+    async getEvolutionConnection(name) {
+        return this.request(`/evolution/instances/${encodeURIComponent(name)}/connection`);
+    }
+
+    async getEvolutionQr(name) {
+        return this.request(`/evolution/instances/${encodeURIComponent(name)}/qr`);
+    }
+
+    async logoutEvolutionInstance(name) {
+        return this.request(`/evolution/instances/${encodeURIComponent(name)}/logout`, { method: 'DELETE' });
+    }
+
+    async deleteEvolutionInstance(name) {
+        return this.request(`/evolution/instances/${encodeURIComponent(name)}`, { method: 'DELETE' });
+    }
+
+    async activateEvolutionInstance(name) {
+        return this.request(`/evolution/instances/${encodeURIComponent(name)}/activate`, { method: 'POST' });
     }
 
     async getStats() {

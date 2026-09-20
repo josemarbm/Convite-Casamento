@@ -427,6 +427,49 @@ body {
   font-size: 0.95rem;
 }
 
+.status-confirmed {
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-declined {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* ===== Evolution instances ===== */
+.instances-list {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.instance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--border-radius-sm);
+}
+
+.instance-row.active-instance { border-color: var(--primary); }
+.instance-details { min-width: 0; }
+.instance-name { font-weight: 600; overflow-wrap: anywhere; }
+.instance-meta { color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.25rem; }
+.instance-actions { display: flex; gap: var(--spacing-xs); flex-wrap: wrap; justify-content: flex-end; }
+.instance-actions .btn { padding: 0.5rem 0.7rem; font-size: 0.85rem; }
+.instance-badge { display: inline-block; margin-left: 0.4rem; padding: 0.15rem 0.45rem; border-radius: 999px; background: rgba(34, 197, 94, 0.18); color: #86efac; font-size: 0.75rem; }
+.qr-modal-content { text-align: center; }
+.qr-instance-image { display: none; width: min(280px, 100%); margin: var(--spacing-md) auto; background: white; border-radius: var(--border-radius-sm); padding: 0.5rem; }
+
+@media (max-width: 600px) {
+  .instance-row { align-items: stretch; flex-direction: column; }
+  .instance-actions { justify-content: flex-start; }
+}
+
 /* ===== Form Elements ===== */
 .form-group {
   margin-bottom: var(--spacing-md);

@@ -52,6 +52,13 @@ explorer.exe index.html
    - **Caminho da Imagem**: `convite.png`
 3. Clique em **Salvar Configurações**
 
+### 3. Criar e conectar uma instância WhatsApp
+
+1. Na aba **Configurações**, preencha e salve a URL e a chave global da Evolution API.
+2. Em **Instâncias WhatsApp**, clique em **Nova instância**, informe um nome com letras minúsculas e números e crie-a.
+3. Abra o QR Code e, no WhatsApp, acesse **Dispositivos conectados** para escaneá-lo.
+4. Após conectar, clique em **Ativar** para definir qual instância será usada no envio dos convites.
+
 ### 3. Gerenciar Convidados (Aba Convidados)
 
 **Adicionar Manualmente:**

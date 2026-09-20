@@ -84,6 +84,20 @@
                 <p class="stat-value" id="pending-invitations">0</p>
               </div>
             </div>
+            <div class="stat-card">
+              <div class="stat-icon">✅</div>
+              <div class="stat-info">
+                <p class="stat-label">Presenças Confirmadas</p>
+                <p class="stat-value" id="confirmed-rsvps">0</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">❌</div>
+              <div class="stat-info">
+                <p class="stat-label">Não Comparecem</p>
+                <p class="stat-value" id="declined-rsvps">0</p>
+              </div>
+            </div>
           </div>
 
           <div class="card dashboard-actions">
@@ -152,6 +166,12 @@
                 <option value="sent">Enviado</option>
                 <option value="failed">Falhou</option>
               </select>
+              <select id="rsvp-status-filter" class="form-input">
+                <option value="">Todas as presenças</option>
+                <option value="pending">⏳ Aguardando resposta</option>
+                <option value="confirmed">✅ Confirmado</option>
+                <option value="declined">❌ Não comparece</option>
+              </select>
               <select id="group-filter" class="form-input">
                 <option value="">Todos os grupos</option>
               </select>
@@ -165,6 +185,7 @@
                     <th>Telefone</th>
                     <th>Grupo</th>
                     <th>Status</th>
+                    <th>Presença</th>
                     <th>Ações</th>
                   </tr>
                 </thead>
@@ -263,6 +284,14 @@
             </div>
 
             <div class="form-group">
+              <button type="button" id="test-connection-btn" class="btn btn-secondary" style="width: 100%; margin-top: 0.5rem;">
+                <span class="btn-icon">🔍</span>
+                Testar Conexão
+              </button>
+              <div id="test-connection-result" style="margin-top: 0.5rem; display: none; padding: 0.75rem; border-radius: var(--border-radius-sm); font-size: 0.85rem; min-height: 24px;"></div>
+            </div>
+
+            <div class="form-group">
               <label for="couple-name">Nome do Casal</label>
               <input
                 type="text"
@@ -290,6 +319,22 @@
               <span class="btn-icon">💾</span>
               Salvar Configurações
             </button>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2>Instâncias WhatsApp</h2>
+                <p class="help-text">Crie uma instância, conecte o WhatsApp pelo QR Code e escolha qual será usada para os envios.</p>
+              </div>
+              <button class="btn btn-primary" type="button" onclick="openCreateInstanceModal()">
+                <span class="btn-icon">➕</span> Nova instância
+              </button>
+            </div>
+            <div id="instances-empty-state" class="empty-state" style="display: none;">
+              <p>📱</p><p>Nenhuma instância encontrada.</p>
+            </div>
+            <div id="instances-list" class="instances-list"></div>
           </div>
 
           <div class="card">
@@ -457,6 +502,39 @@
           <button class="btn btn-primary" onclick="confirmSchedule()">
             Agendar
           </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="create-instance-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Nova instância WhatsApp</h2>
+          <button class="modal-close" onclick="closeCreateInstanceModal()">&times;</button>
+        </div>
+        <div class="form-group">
+          <label for="instance-name">Nome da instância</label>
+          <input id="instance-name" class="form-input" maxlength="60" placeholder="casamento2026" autocomplete="off" />
+          <p class="help-text">Use apenas letras minúsculas e números.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeCreateInstanceModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="createEvolutionInstance()">Criar e conectar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="qr-instance-modal" class="modal">
+      <div class="modal-content qr-modal-content">
+        <div class="modal-header">
+          <h2 id="qr-instance-title">Conectar WhatsApp</h2>
+          <button class="modal-close" onclick="closeQrModal()">&times;</button>
+        </div>
+        <p id="qr-instance-status" class="help-text">Gerando QR Code…</p>
+        <img id="qr-instance-image" class="qr-instance-image" alt="QR Code para conectar o WhatsApp" />
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="refreshInstanceQr()">↻ Atualizar QR</button>
+          <button class="btn btn-primary" onclick="closeQrModal()">Fechar</button>
         </div>
       </div>
     </div>

@@ -41,6 +41,9 @@ class Guest(db.Model):
     group_id = db.Column(db.Integer, db.ForeignKey('groups.id'), nullable=True)
     status = db.Column(db.String(20), default='pending')  # pending, sent, failed
     sent_at = db.Column(db.DateTime, nullable=True)
+    rsvp_token_hash = db.Column(db.String(64), unique=True, nullable=True)
+    rsvp_status = db.Column(db.String(20), default='pending', nullable=False)  # pending, confirmed, declined
+    rsvp_responded_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationship
@@ -55,6 +58,8 @@ class Guest(db.Model):
             'group_name': self.group.name if self.group else None,
             'status': self.status,
             'sent_at': self.sent_at.isoformat() if self.sent_at else None,
+            'rsvp_status': self.rsvp_status or 'pending',
+            'rsvp_responded_at': self.rsvp_responded_at.isoformat() if self.rsvp_responded_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 

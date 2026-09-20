@@ -13,6 +13,7 @@ services:
       - EVOLUTION_API_URL=http://evolution-api:8080
       - EVOLUTION_API_KEY=12345
       - EVOLUTION_SESSION_ID=default
+      - PUBLIC_APP_URL=${PUBLIC_APP_URL:-http://localhost:3000}
       - FLASK_SECRET_KEY=wedding-invitation-secret-key-change-in-prod
       - DATABASE_URL=mysql+pymysql://wedding_user:wedding_pass_2024@mysql:3306/wedding_invites
       - FLASK_ENV=production

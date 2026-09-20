@@ -5,6 +5,7 @@ import re
 from database import get_setting
 
 class WhatsAppService:
+    REQUEST_TIMEOUT = 15
     def __init__(self):
         self.server_url = None
         self.api_key = None
@@ -49,6 +50,69 @@ class WhatsAppService:
             self.session_id = session_id
         if image_path:
             self.image_path = image_path
+
+    def _evolution_request(self, method, path, payload=None):
+        """Call Evolution API without exposing its global key to the client."""
+        self._ensure_initialized()
+        url = f"{self.server_url.rstrip('/')}/{path.lstrip('/')}"
+        try:
+            response = requests.request(
+                method,
+                url,
+                json=payload,
+                headers={"apikey": self.api_key, "Content-Type": "application/json"},
+                timeout=self.REQUEST_TIMEOUT,
+            )
+            try:
+                body = response.json()
+            except ValueError:
+                body = response.text
+
+            if not response.ok:
+                message = body.get('message') or body.get('error') if isinstance(body, dict) else body
+                return {'success': False, 'status_code': response.status_code, 'error': message or 'Evolution API request failed'}
+            return {'success': True, 'status_code': response.status_code, 'data': body}
+        except requests.RequestException as error:
+            return {'success': False, 'error': f'Não foi possível comunicar com a Evolution API: {error}'}
+
+    @staticmethod
+    def _instance_summary(item):
+        """Normalize the slightly different instance payloads returned by Evolution v1."""
+        item = item if isinstance(item, dict) else {}
+        source = item.get('instance', item)
+        source = source if isinstance(source, dict) else item
+        return {
+            'name': source.get('instanceName') or source.get('name') or item.get('instanceName'),
+            'status': source.get('status') or source.get('state') or item.get('status') or 'unknown',
+            'owner': source.get('owner') or source.get('ownerJid') or item.get('owner'),
+        }
+
+    def list_instances(self):
+        result = self._evolution_request('GET', 'instance/fetchInstances')
+        if not result['success']:
+            return result
+        payload = result.get('data', [])
+        if isinstance(payload, dict):
+            payload = payload.get('instances') or payload.get('data') or []
+        if not isinstance(payload, list):
+            payload = []
+        result['data'] = [summary for summary in (self._instance_summary(item) for item in payload) if summary['name']]
+        return result
+
+    def create_instance(self, name):
+        return self._evolution_request('POST', 'instance/create', {'instanceName': name, 'qrcode': True})
+
+    def get_connection(self, name):
+        return self._evolution_request('GET', f'instance/connectionState/{name}')
+
+    def get_qr_code(self, name):
+        return self._evolution_request('GET', f'instance/connect/{name}')
+
+    def logout_instance(self, name):
+        return self._evolution_request('DELETE', f'instance/logout/{name}')
+
+    def delete_instance(self, name):
+        return self._evolution_request('DELETE', f'instance/delete/{name}')
     
     def format_phone(self, phone):
         """Format phone number (from app.py)"""
@@ -100,7 +164,7 @@ class WhatsAppService:
             "Content-Type": "application/json"
         }
         
-        response = requests.post(url, json=payload, headers=headers)
+        response = requests.post(url, json=payload, headers=headers, timeout=self.REQUEST_TIMEOUT)
         
         return {
             'success': response.status_code == 200 or response.status_code == 201,
@@ -144,7 +208,7 @@ class WhatsAppService:
             "Content-Type": "application/json"
         }
         
-        response = requests.post(url, json=payload, headers=headers)
+        response = requests.post(url, json=payload, headers=headers, timeout=self.REQUEST_TIMEOUT)
         
         return {
             'success': response.status_code == 200 or response.status_code == 201,
@@ -159,7 +223,7 @@ class WhatsAppService:
             url = f"{self.server_url}/instance/connectionState/{self.session_id}"
             headers = {"apikey": self.api_key}
             
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers, timeout=self.REQUEST_TIMEOUT)
             
             return {
                 'success': response.status_code == 200,
