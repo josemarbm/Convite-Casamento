@@ -6,7 +6,7 @@ Este é um sistema completo de convites de casamento com:
 - ✅ Dashboard web interativo
 - ✅ API REST com autenticação JWT
 - ✅ Integração WhatsApp (EvolutionAPI)
-- ✅ Documentação Swagger automática
+- ✅ API Fastify e frontend React no mesmo serviço
 - ✅ Login seguro com hash de senha
 
 ---
@@ -24,8 +24,8 @@ make docker-up
 
 ### 2️⃣ Acessar o Dashboard
 ```
-Frontend: http://localhost:3000/login.html
-API Docs: http://localhost:5000/docs
+Aplicação: http://localhost:3000
+Health: http://localhost:3000/health
 ```
 
 ### 3️⃣ Fazer Login
@@ -54,8 +54,8 @@ Senha: admin123
 | Serviço | URL | Credenciais |
 |---------|-----|-------------|
 | **Frontend** | http://localhost:3000 | admin / admin123 |
-| **Swagger** | http://localhost:5000/docs | admin / admin123 |
-| **Backend** | http://localhost:5000/api | Token JWT |
+| **Node monolith** | http://localhost:3000 | admin / admin123 |
+| **API** | http://localhost:3000/api | Token JWT |
 | **EvolutionAPI** | http://localhost:8080 | Configurável |
 
 ---
@@ -75,7 +75,7 @@ Email: admin@casamento.com
 ## 📖 Testando a API
 
 ### Via Swagger
-1. Acesse: http://localhost:5000/docs
+1. Acesse: http://localhost:3000
 2. Clique em **"Authorize"**
 3. Cole: `Bearer <seu_token>`
 4. Teste os endpoints
@@ -83,13 +83,13 @@ Email: admin@casamento.com
 ### Via cURL
 ```bash
 # 1. Login
-TOKEN=$(curl -s -X POST http://localhost:5000/api/auth/login \
+TOKEN=$(curl -s -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}' | jq -r '.token')
 
 # 2. Usar token
 curl -H "Authorization: Bearer $TOKEN" \
-  http://localhost:5000/api/guests
+  http://localhost:3000/api/guests
 ```
 
 ---
@@ -98,15 +98,10 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 ```
 .
-├── api/                    # Backend Flask
-│   ├── app.py             # Aplicação principal
-│   ├── models.py          # Modelos do banco
-│   ├── database.py        # Inicialização DB
-│   └── requirements.txt    # Dependências
-├── web/                    # Frontend
-│   ├── index.html         # Dashboard
-│   ├── login.html         # Página de login
-│   └── js/               # JavaScript
+├── server/                 # Monólito Fastify
+├── prisma/                 # Mapeamento MySQL
+├── web-react/              # Frontend React
+├── tests/                  # Testes Node
 ├── docs/                   # Documentação
 └── docker-compose.yml      # Configuração Docker
 ```
@@ -184,7 +179,7 @@ Para dúvidas, consulte:
 
 ---
 
-**Desenvolvido com ❤️ para o casamento de Gabriela & Josemar 💍**
+**Aplicação Node.js para o casamento de Gabriela & Josemar**
 
-Data: 16 de Junho de 2026  
+Data: 16 de Junho de 2026
 Status: ✅ Pronto para Produção

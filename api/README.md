@@ -1,4 +1,6 @@
-# Wedding Invitation Backend API
+# Legacy Flask API
+
+> A aplicação principal foi migrada para o monólito Node.js em `http://localhost:3000`. Este diretório permanece como referência durante a transição.
 
 Flask REST API para o sistema de envio de convites de casamento via WhatsApp.
 
@@ -17,7 +19,7 @@ make backend-init-db
 make backend-run
 ``
 
-O servidor estará disponível em `http://localhost:5000`
+O servidor estará disponível em `http://localhost:3000`
 
 ### Configuração
 

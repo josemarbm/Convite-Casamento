@@ -42,3 +42,6 @@ env.sh
 # Application Specific
 api/uploads/
 !api/uploads/.gitkeep
+
+node_modules/
+dist/

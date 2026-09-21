@@ -46,7 +46,7 @@ docker-infra-up:
 	$(COMPOSE) -f docker-compose.infra.yml up -d
 	@echo "🛠️ Infraestrutura iniciada (MySQL + EvolutionAPI)"
 
-# Subir Aplicação (Backend + Frontend)
+# Subir Aplicação Node (API + Frontend)
 docker-app-up:
 	$(COMPOSE) -f docker-compose.yml up -d --build
 	@echo "🚀 Aplicação iniciada (Backend + Frontend)"
@@ -54,8 +54,7 @@ docker-app-up:
 # Subir TUDO
 docker-up: docker-infra-up docker-app-up
 	@echo "✅ Sistema completo iniciado!"
-	@echo "   Frontend:  http://localhost:3000"
-	@echo "   Backend:   http://localhost:5000"
+	@echo "   Monolito:  http://localhost:3000"
 	@echo "   Evolution: http://localhost:8080/manager"
 
 # Parar TUDO
@@ -146,10 +145,10 @@ backend-init-db:
 	cd $(BACKEND_DIR) && $(PYTHON) -c "from app import app, init_db; init_db(app)"
 	@echo "✅ Database initialized!"
 
-# Rodar Flask server
+# Rodar servidor Node
 backend-run: up
-	@echo "🚀 Starting Flask API server..."
-	cd $(BACKEND_DIR) && $(PYTHON) app.py
+	@echo "🚀 Starting Node monolith..."
+	npm start
 
 # ===== Legacy Commands =====
 

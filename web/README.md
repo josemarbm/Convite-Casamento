@@ -1,4 +1,6 @@
-# Interface Web - Sistema de Convites de Casamento
+# Legacy Web Interface
+
+> A interface principal agora é React e é servida pelo monólito Node.js em `http://localhost:3000`. Este diretório permanece como referência durante a transição.
 
 Interface moderna e intuitiva para gerenciar o envio de convites de casamento via WhatsApp.
 

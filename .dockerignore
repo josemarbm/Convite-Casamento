@@ -1,4 +1,10 @@
-# Ambientes virtuais
+node_modules
+dist
+.git
+.venv
+api/uploads
+web-react/node_modules
+*.log# Ambientes virtuais
 .venv/
 venv/
 __pycache__/
