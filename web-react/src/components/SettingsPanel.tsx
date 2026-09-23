@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { apiRequest, uploadFile } from '../api/client';
 
 type SettingsState = {
+  couple_name: string;
   evolution_api_url: string;
   evolution_api_key: string;
   evolution_session_id: string;
@@ -16,6 +17,7 @@ type EvolutionInstance = {
 };
 
 const initialSettings: SettingsState = {
+  couple_name: '',
   evolution_api_url: '',
   evolution_api_key: '',
   evolution_session_id: '',
@@ -82,6 +84,7 @@ export default function SettingsPanel() {
       .then(([settingsResult, instancesResult]) => {
         if (!isMounted) return;
         setSettings({
+          couple_name: settingsResult.couple_name ?? '',
           evolution_api_url: settingsResult.evolution_api_url ?? '',
           evolution_api_key: settingsResult.evolution_api_key ?? '',
           evolution_session_id: settingsResult.evolution_session_id ?? '',
@@ -114,6 +117,7 @@ export default function SettingsPanel() {
 
     try {
       const payload = {
+        couple_name: settings.couple_name,
         evolution_api_url: settings.evolution_api_url,
         evolution_api_key: settings.evolution_api_key,
         evolution_session_id: settings.evolution_session_id,
@@ -282,6 +286,16 @@ export default function SettingsPanel() {
 
       <div className="settings-form">
         <label>
+          Nome dos noivos
+          <input
+            value={settings.couple_name}
+            onChange={(event) => updateField('couple_name', event.target.value)}
+            placeholder="Gabriela & Josemar"
+            disabled={loading}
+          />
+        </label>
+
+        <label>
           Evolution API
           <input
             value={settings.evolution_api_url}
@@ -338,7 +352,7 @@ export default function SettingsPanel() {
             <input
               value={newInstanceName}
               onChange={(event) => setNewInstanceName(event.target.value)}
-              placeholder="nome-da-instancia"
+              placeholder="default"
               disabled={loading}
             />
             <button className="primary-button" disabled={loading || working !== null} onClick={createInstance}>

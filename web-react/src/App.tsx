@@ -10,8 +10,15 @@ function Application() {
   return user ? <DashboardPage /> : <LoginPage />;
 }
 
+export function getRsvpToken(pathname: string, search: string) {
+  const pathMatch = pathname.match(/^\/rsvp\/([^/]+)$/);
+  if (pathMatch) return decodeURIComponent(pathMatch[1]);
+  if (pathname === '/rsvp.html') return new URLSearchParams(search).get('token');
+  return null;
+}
+
 export default function App() {
-  const rsvpMatch = window.location.pathname.match(/^\/rsvp\/([^/]+)$/);
-  if (rsvpMatch) return <RsvpPage token={decodeURIComponent(rsvpMatch[1])} />;
+  const rsvpToken = getRsvpToken(window.location.pathname, window.location.search);
+  if (rsvpToken) return <RsvpPage token={rsvpToken} />;
   return <AuthProvider><Application /></AuthProvider>;
 }

@@ -2,7 +2,7 @@
 services:
   # EvolutionAPI - WhatsApp Integration
   evolution-api:
-    image: atendai/evolution-api:v1.8.2
+    image: evoapicloud/evolution-api:v1.8.2
     container_name: evolution-api
     ports:
       - "8080:8080"

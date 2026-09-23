@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
+import { createHash, randomBytes } from 'node:crypto';
 import { EvolutionClient } from '../../lib/evolution-client.js';
 
 type Guest = Prisma.GuestGetPayload<{ include: { group: true } }>;
@@ -9,8 +10,8 @@ export function formatPhone(phone: string) {
   return digits.startsWith('55') ? digits : `55${digits}`;
 }
 
-export function renderInvitationMessage(content: string, guest: Pick<Guest, 'name'>) {
-  return content.replaceAll('{nome}', guest.name);
+export function renderInvitationMessage(content: string, guest: Pick<Guest, 'name'>, coupleName = '', token = '') {
+  return content.replaceAll('{nome}', guest.name).replaceAll('{couple_name}', coupleName).replaceAll('{token}', token);
 }
 
 type DirectSendOptions = {
@@ -29,6 +30,7 @@ export async function sendDirect(options: DirectSendOptions) {
     : await options.db.messageTemplate.findFirst({ where: { isDefault: true } });
   if (!template) throw new Error('No template found');
   if (!options.sessionId.trim()) throw new Error('Nenhuma instância ativa do WhatsApp foi configurada.');
+  const coupleName = (await options.db.setting?.findUnique({ where: { key: 'couple_name' } }))?.value ?? '';
 
   const where: Prisma.GuestWhereInput = options.guestIds?.length
     ? { id: { in: options.guestIds } }
@@ -45,9 +47,10 @@ export async function sendDirect(options: DirectSendOptions) {
 
   const results = [];
   for (const guest of guests) {
-    const result = await options.client.sendText(options.sessionId, formatPhone(guest.phone), renderInvitationMessage(template.content, guest));
+    const token = randomBytes(32).toString('base64url');
+    const result = await options.client.sendText(options.sessionId, formatPhone(guest.phone), renderInvitationMessage(template.content, guest, coupleName, token));
     const success = result.success;
-    await options.db.guest.update({ where: { id: guest.id }, data: { status: success ? 'sent' : 'failed', sentAt: success ? new Date() : null } });
+    await options.db.guest.update({ where: { id: guest.id }, data: { rsvpTokenHash: createHash('sha256').update(token).digest('hex'), status: success ? 'sent' : 'failed', sentAt: success ? new Date() : null } });
     results.push({ guest_id: guest.id, name: guest.name, success, ...(success ? {} : { error: result.error }) });
   }
 

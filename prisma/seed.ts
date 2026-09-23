@@ -12,8 +12,46 @@ async function main() {
   });
   await db.messageTemplate.upsert({
     where: { id: 1 },
-    update: {},
-    create: { name: 'Convite Padrão', content: 'Querido(a) {nome}, confirme sua presença: {confirmacao_url}', isDefault: true },
+    update: { name: 'Convite Padrão', content: `Querido(a) {nome},
+📣 CHEGOU O GRANDE MOMENTO!! 🚨
+É com muito carinho que enviamos o convite do nosso casamento! 💐 ❤️
+Sua presença tornará nosso dia ainda mais especial.
+🗓️ Por favor, confirme até 16/12/2025 no link abaixo
+
+👉 Confirmar presença:
+http://localhost:3000/rsvp.html?token={token}
+
+🎁 Lista de presentes:
+https://noivos.casar.com/gabrielaejosemar?preview_as_guest=1&ref=/one-page/home#/lista-de-presentes
+
+🌐 Site do casamento:
+http://noivos.casar.com/gabrielaejosemar
+
+💒Local:
+https://maps.app.goo.gl/5EXFabhRzoVqHhYP9
+
+Com carinho,
+{couple_name} 💍💍`, isDefault: true },
+    create: { name: 'Convite Padrão', content: `Querido(a) {nome},
+📣 CHEGOU O GRANDE MOMENTO!! 🚨
+É com muito carinho que enviamos o convite do nosso casamento! 💐 ❤️
+Sua presença tornará nosso dia ainda mais especial.
+🗓️ Por favor, confirme até 16/12/2025 no link abaixo
+
+👉 Confirmar presença:
+http://localhost:3000/rsvp.html?token={token}
+
+🎁 Lista de presentes:
+https://noivos.casar.com/gabrielaejosemar?preview_as_guest=1&ref=/one-page/home#/lista-de-presentes
+
+🌐 Site do casamento:
+http://noivos.casar.com/gabrielaejosemar
+
+💒Local:
+https://maps.app.goo.gl/5EXFabhRzoVqHhYP9
+
+Com carinho,
+{couple_name} 💍💍`, isDefault: true },
   });
   for (const [key, value] of Object.entries({
     evolution_api_url: process.env.EVOLUTION_API_URL ?? 'http://127.0.0.1:8080',
