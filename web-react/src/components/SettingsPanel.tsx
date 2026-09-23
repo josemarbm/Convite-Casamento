@@ -65,6 +65,7 @@ function normalizeQrValue(value: unknown): string | null {
 
 export default function SettingsPanel() {
   const [settings, setSettings] = useState<SettingsState>(initialSettings);
+  const [imagePreview, setImagePreview] = useState('');
   const [instances, setInstances] = useState<EvolutionInstance[]>([]);
   const [newInstanceName, setNewInstanceName] = useState('');
   const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
@@ -91,6 +92,11 @@ export default function SettingsPanel() {
           image_path: settingsResult.image_path ?? '',
         });
         setInstances(instancesResult.instances ?? []);
+        if (settingsResult.image_path) {
+          void apiRequest<{ data: string; mimetype: string }>('/images/preview')
+            .then((preview) => setImagePreview(`data:${preview.mimetype};base64,${preview.data}`))
+            .catch(() => setImagePreview(''));
+        }
       })
       .catch((reason) => {
         if (!isMounted) return;
@@ -143,8 +149,9 @@ export default function SettingsPanel() {
     setNotice('');
 
     try {
-      const result = await uploadFile('/images/upload', file) as { path: string };
+      const result = await uploadFile('/images/upload', file) as { path: string; preview: string };
       setSettings((current) => ({ ...current, image_path: result.path }));
+      setImagePreview(result.preview);
       setNotice('Imagem do convite enviada com sucesso.');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Não foi possível enviar a imagem do convite.');
@@ -334,6 +341,7 @@ export default function SettingsPanel() {
               <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadInvitationImage(file); event.currentTarget.value = ''; }} disabled={loading || working !== null} />
             </label>
           </div>
+          {imagePreview && <img className="invitation-image-preview" src={imagePreview} alt="Pré-visualização da imagem do convite" />}
           <small className="field-help">PNG, JPG, GIF ou WEBP.</small>
         </div>
 

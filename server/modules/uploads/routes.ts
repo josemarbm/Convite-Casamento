@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
@@ -7,6 +7,11 @@ import { authenticateRequest } from '../../lib/auth.js';
 
 type Options = { db: PrismaClient; jwtSecret: string; uploadDir?: string };
 const imageTypes = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
+
+function imageMimeType(filePath: string) {
+  const extension = path.extname(filePath).toLowerCase();
+  return ({ '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp' } as Record<string, string>)[extension] ?? 'application/octet-stream';
+}
 
 export function normalizeSpreadsheetRow(row: Record<string, unknown>) {
   const normalized = Object.fromEntries(Object.entries(row).map(([key, value]) => [key.toLowerCase().trim(), value]));
@@ -21,6 +26,19 @@ export function workbookFromGuests(guests: Array<{ name: string; phone: string }
 }
 
 export async function registerUploadRoutes(app: FastifyInstance, options: Options) {
+  app.get('/api/images/preview', async (request, reply) => {
+    if (!await authenticateRequest(request, options.jwtSecret)) return reply.code(401).send({ error: 'Token is missing or invalid' });
+    const imagePath = (await options.db.setting.findUnique({ where: { key: 'image_path' } }))?.value;
+    if (!imagePath) return reply.code(404).send({ error: 'No invitation image configured' });
+
+    try {
+      const image = await readFile(imagePath);
+      return { data: image.toString('base64'), mimetype: imageMimeType(imagePath) };
+    } catch {
+      return reply.code(404).send({ error: 'Invitation image not found' });
+    }
+  });
+
   app.post('/api/images/upload', async (request, reply) => {
     if (!await authenticateRequest(request, options.jwtSecret)) return reply.code(401).send({ error: 'Token is missing or invalid' });
     const file = await request.file();
@@ -29,9 +47,10 @@ export async function registerUploadRoutes(app: FastifyInstance, options: Option
     await mkdir(uploadDir, { recursive: true });
     const filename = `invitation-${Date.now()}${path.extname(file.filename).toLowerCase() || '.bin'}`;
     const target = path.join(uploadDir, filename);
-    await writeFile(target, await file.toBuffer());
+    const contents = await file.toBuffer();
+    await writeFile(target, contents);
     await options.db.setting.upsert({ where: { key: 'image_path' }, update: { value: target }, create: { key: 'image_path', value: target } });
-    return { path: target, filename };
+    return { path: target, filename, preview: `data:${file.mimetype};base64,${contents.toString('base64')}` };
   });
 
   app.post('/api/guests/import', async (request, reply) => {

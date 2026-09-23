@@ -50,7 +50,7 @@ export default function GuestList({ guests, loading, workingId, onEdit, onDelete
   return (
     <div className="guest-table" role="table" aria-label="Lista de convidados">
       <div className="guest-table-header" role="row">
-        <span>Convidado</span><span>Grupo</span><span>Convite</span><span>RSVP</span><span>Ações</span>
+        <span>Convidado</span><span>Grupo</span><span>Convite</span><span>Resposta</span><span>Ações</span>
       </div>
       {guests.map((guest) => (
         <article className="guest-row" key={guest.id} role="row">
