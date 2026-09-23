@@ -104,7 +104,7 @@ export default function DashboardPage() {
 
   async function sendNow() {
     setSending(true);
-    try { const result = await apiRequest<{ message: string }>('/send/direct', { method: 'POST', body: JSON.stringify({}) }); setNotice(result.message); await loadGuests(); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Não foi possível enviar os convites.'); } finally { setSending(false); }
+    try { const result = await apiRequest<{ message: string }>('/send/direct', { method: 'POST', body: JSON.stringify({ filters: { status: 'pending' } }) }); setNotice(result.message); await loadGuests(); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Não foi possível enviar os convites.'); } finally { setSending(false); }
   }
 
   const guests = data?.guests ?? [];
