@@ -24,4 +24,29 @@ describe('EvolutionClient', () => {
       error: 'Não foi possível comunicar com a Evolution API: offline',
     });
   });
+
+  it('sends an image with a caption', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 201 }));
+    const client = new EvolutionClient({ baseUrl: 'http://evolution:8080', apiKey: 'secret', fetcher });
+
+    await client.sendMedia('casamento2026', '5511999999999', 'aW1hZ2U=', 'image/jpeg', 'convite.jpg', 'Mensagem do convite');
+
+    expect(fetcher.mock.calls[0]).toEqual([
+      'http://evolution:8080/message/sendMedia/casamento2026',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          number: '5511999999999',
+          options: { delay: 200, presence: 'composing' },
+          mediaMessage: {
+            mediatype: 'image',
+            mimetype: 'image/jpeg',
+            caption: 'Mensagem do convite',
+            media: 'aW1hZ2U=',
+            fileName: 'convite.jpg',
+          },
+        }),
+      }),
+    ]);
+  });
 });

@@ -16,7 +16,7 @@ describe('sending service', () => {
   it('renders and sends messages while updating guest status', async () => {
     const db = {
       messageTemplate: { findFirst: vi.fn().mockResolvedValue({ id: 3, content: 'Oi {nome}, com carinho, {couple_name}: {token}' }) },
-      setting: { findUnique: vi.fn().mockResolvedValue({ key: 'couple_name', value: 'Gabriela & Josemar' }) },
+      setting: { findMany: vi.fn().mockResolvedValue([{ key: 'couple_name', value: 'Gabriela & Josemar' }]) },
       guest: { findMany: vi.fn().mockResolvedValue([guest]), update: vi.fn().mockResolvedValue(guest) },
     } as never;
     const client = { sendText: vi.fn().mockResolvedValue({ success: true, statusCode: 201, data: {} }) } as never;
