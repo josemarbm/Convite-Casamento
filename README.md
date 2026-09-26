@@ -1,4 +1,4 @@
-# Sistema de Convites de Casamento - Dockerizado 🐳
+# Sistema de Convites de Casamento
 
 Sistema completo containerizado com Docker Compose para envio de convites de casamento via WhatsApp.
 
@@ -20,9 +20,9 @@ docker network create wedding_shared_net
 make docker-up
 
 # 2. Acessar aplicação
-# Frontend: http://localhost:3000/login.html
-# Swagger: http://localhost:5000/docs
-# Backend:  http://localhost:5000/api
+# Aplicação Node: http://localhost:3000
+# Health check: http://localhost:3000/health
+# RSVP público: http://localhost:3000/rsvp/<token>
 ```
 
 ### 🔑 Credenciais Padrão
@@ -43,8 +43,8 @@ Senha: admin123
 
 ## 📦 O que está incluído?
 
-- ✅ **Backend Flask** (API REST completa com autenticação JWT)
-- ✅ **Frontend Nginx** (Interface web moderna com login)
+- ✅ **Monólito Node.js** (API Fastify + frontend React no mesmo serviço)
+- ✅ **MySQL** (persistência externa preservada)
 - ✅ **EvolutionAPI** (Integração WhatsApp)
 - ✅ **Volumes persistentes** (Dados salvos)
 - ✅ **Network isolada** (Comunicação segura)
@@ -56,12 +56,10 @@ Senha: admin123
 ┌──────────────────────────────────┐
 │      Docker Compose Stack        │
 │                                  │
-│  Frontend (Nginx) :3000          │
-│  Login + Dashboard               │
-│         ↓                        │
-│  Backend (Flask) :5000           │
-│  API REST + Swagger Docs         │
-│         ↓                        │
+│  Node.js monolith :3000          │
+│  React + Fastify API             │
+│       ↓             ↓            │
+│  MySQL          EvolutionAPI    │
 │  EvolutionAPI :8080              │
 │  WhatsApp Integration            │
 └──────────────────────────────────┘
@@ -81,12 +79,13 @@ make docker-status    # Ver status
 make docker-clean     # Limpar tudo (CUIDADO!)
 ```
 
-### Backend Local (Desenvolvimento)
+### Node Local (Desenvolvimento)
 
 ```bash
-make backend-setup     # Instalar dependências
-make backend-init-db   # Inicializar banco
-make backend-run       # Rodar Flask local
+npm install
+npm run dev
+npm test -- --run
+npm run build
 ```
 
 ### EvolutionAPI Standalone
@@ -111,8 +110,7 @@ FLASK_SECRET_KEY=sua-secret-key
 
 ### Portas
 
-- **3000**: Frontend (Nginx)
-- **5000**: Backend (Flask API)
+- **3000**: Aplicação Node (frontend + API)
 - **8080**: EvolutionAPI Manager
 
 Para alterar, edite `docker-compose.yml`:
@@ -127,8 +125,8 @@ ports:
 Dados salvos automaticamente:
 
 - `evolution_data`: Sessões WhatsApp
-- `backend_uploads`: Imagens de convites
-- `backend_db`: Banco de dados SQLite
+- `app_uploads`: Imagens de convites
+- `mysql_data`: Banco de dados MySQL
 
 ### Backup
 
@@ -137,10 +135,10 @@ Dados salvos automaticamente:
 docker volume ls
 
 # Backup do banco
-docker cp wedding-backend:/app/data/wedding_invites.db ./backup.db
+# Faça o backup do MySQL usando mysqldump ou a ferramenta do seu provedor.
 
 # Restore
-docker cp ./backup.db wedding-backend:/app/data/wedding_invites.db
+# Restaure o dump no banco MySQL antes de iniciar a aplicação.
 ```
 
 ## 🛠️ Desenvolvimento
@@ -150,11 +148,8 @@ docker cp ./backup.db wedding-backend:/app/data/wedding_invites.db
 Para desenvolvimento com hot reload:
 
 ```bash
-# Backend: edite arquivos em api/ e restart
-make docker-restart
-
-# Frontend: edite web/ e rebuild
-docker-compose up -d --build frontend
+# Edite server/ ou web-react/ e use o servidor de desenvolvimento
+npm run dev
 ```
 
 ### Logs em Tempo Real
@@ -164,17 +159,14 @@ docker-compose up -d --build frontend
 make docker-logs
 
 # Serviço específico
-docker-compose logs -f backend
+docker-compose logs -f app
 ```
 
 ### Acessar Shell
 
 ```bash
-# Backend
-docker exec -it wedding-backend bash
-
-# Frontend
-docker exec -it wedding-frontend sh
+# Aplicação Node
+docker exec -it wedding-app sh
 ```
 
 ## 🐛 Troubleshooting
@@ -212,11 +204,11 @@ make docker-up
 ### Frontend não carrega
 
 ```bash
-# Verificar logs do Nginx
-docker logs wedding-frontend
+# Verificar logs da aplicação
+docker logs wedding-app
 
-# Testar backend diretamente
-curl http://localhost:5000/api/stats
+# Testar a aplicação
+curl http://localhost:3000/health
 ```
 
 ## 📊 Monitoramento
@@ -238,8 +230,8 @@ docker system df
 docker-compose ps
 
 # Teste de conectividade
-curl http://localhost:3000      # Frontend
-curl http://localhost:5000/api  # Backend
+curl http://localhost:3000      # Frontend + API
+curl http://localhost:3000/health
 curl http://localhost:8080      # EvolutionAPI
 ```
 
@@ -252,7 +244,7 @@ curl http://localhost:8080      # EvolutionAPI
 openssl rand -hex 32
 
 # Atualizar docker-compose.yml
-FLASK_SECRET_KEY=<chave-gerada>
+JWT_SECRET=<chave-gerada>
 EVOLUTION_API_KEY=<chave-gerada>
 ```
 

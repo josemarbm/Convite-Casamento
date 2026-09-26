@@ -1,7 +1,5 @@
 // API Client for Backend Communication
-const API_BASE = window.location.hostname === 'localhost' 
-    ? 'http://localhost:5000/api' 
-    : 'http://backend:5000/api';
+const API_BASE = '/api';
 
 class APIClient {
     constructor() {
@@ -42,11 +40,28 @@ class APIClient {
             }
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Request failed');
+                // Try to parse JSON error body, otherwise use generic message
+                let errMsg = 'Request failed';
+                try {
+                    const errorBody = await response.json();
+                    errMsg = errorBody.error || JSON.stringify(errorBody) || errMsg;
+                } catch (e) {
+                    // ignore JSON parse errors
+                }
+                throw new Error(errMsg);
             }
 
-            return await response.json();
+            // If no content
+            if (response.status === 204) return {};
+
+            // Only parse JSON when Content-Type indicates JSON
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                return await response.json();
+            }
+
+            // Fallback: return text
+            return await response.text();
         } catch (error) {
             console.error(`API Error [${endpoint}]:`, error);
             throw error;
@@ -220,9 +235,14 @@ class APIClient {
         const formData = new FormData();
         formData.append('file', file);
 
+        const headers = {};
+        const token = localStorage.getItem('auth_token');
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
         const response = await fetch(`${this.baseURL}/images/upload`, {
             method: 'POST',
-            body: formData
+            body: formData,
+            headers: headers
         });
 
         if (!response.ok) {
@@ -248,6 +268,38 @@ class APIClient {
     // ===== Utility =====
     async testConnection() {
         return this.request('/test-connection');
+    }
+
+    // ===== Evolution API instances =====
+    async getEvolutionInstances() {
+        return this.request('/evolution/instances');
+    }
+
+    async createEvolutionInstance(name) {
+        return this.request('/evolution/instances', {
+            method: 'POST',
+            body: JSON.stringify({ name })
+        });
+    }
+
+    async getEvolutionConnection(name) {
+        return this.request(`/evolution/instances/${encodeURIComponent(name)}/connection`);
+    }
+
+    async getEvolutionQr(name) {
+        return this.request(`/evolution/instances/${encodeURIComponent(name)}/qr`);
+    }
+
+    async logoutEvolutionInstance(name) {
+        return this.request(`/evolution/instances/${encodeURIComponent(name)}/logout`, { method: 'DELETE' });
+    }
+
+    async deleteEvolutionInstance(name) {
+        return this.request(`/evolution/instances/${encodeURIComponent(name)}`, { method: 'DELETE' });
+    }
+
+    async activateEvolutionInstance(name) {
+        return this.request(`/evolution/instances/${encodeURIComponent(name)}/activate`, { method: 'POST' });
     }
 
     async getStats() {

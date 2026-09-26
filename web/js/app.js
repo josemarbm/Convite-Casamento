@@ -4,6 +4,7 @@ let totalPages = 1;
 let perPage = 20;
 let searchQuery = '';
 let statusFilter = '';
+let rsvpStatusFilter = '';
 let groupFilter = '';
 let guests = [];
 let groups = [];
@@ -11,6 +12,9 @@ let templates = [];
 let currentEditingId = null;
 let currentEditingTemplateId = null;
 let currentTheme = localStorage.getItem('theme') || 'dark';
+let evolutionInstances = [];
+let qrInstanceName = null;
+let qrStatusTimer = null;
 
 // ===== Authentication Check =====
 function checkAuthentication() {
@@ -40,6 +44,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadInitialData();
     setupEventListeners();
     addLogoutButton();
+
+    window.addEventListener('storage', (event) => {
+        if (event.key === 'wedding_rsvp_updated') {
+            updateDashboard();
+        }
+    });
+
+    setInterval(() => {
+        updateDashboard();
+    }, 15000);
 });
 
 // ===== Theme Management =====
@@ -70,6 +84,7 @@ async function loadInitialData() {
             loadGroups(),
             loadTemplates(),
             loadSettings(),
+            loadEvolutionInstances(),
             updateDashboard()
         ]);
     } catch (error) {
@@ -86,6 +101,7 @@ async function loadGuests() {
             per_page: perPage,
             search: searchQuery,
             status: statusFilter,
+            rsvp_status: rsvpStatusFilter,
             group_id: groupFilter
         };
         
@@ -127,6 +143,8 @@ async function updateDashboard() {
         document.getElementById('total-guests').textContent = stats.total_guests;
         document.getElementById('sent-invitations').textContent = stats.sent;
         document.getElementById('pending-invitations').textContent = stats.pending;
+        document.getElementById('confirmed-rsvps').textContent = stats.confirmed_rsvps || 0;
+        document.getElementById('declined-rsvps').textContent = stats.declined_rsvps || 0;
     } catch (error) {
         console.error('Error loading stats:', error);
     }
@@ -179,6 +197,11 @@ function renderGuestsTable() {
             <td>
                 <span class="status-badge ${guest.status === 'sent' ? 'status-sent' : guest.status === 'failed' ? 'status-failed' : 'status-pending'}">
                     ${guest.status === 'sent' ? '✅ Enviado' : guest.status === 'failed' ? '❌ Falhou' : '⏳ Pendente'}
+                </span>
+            </td>
+            <td>
+                <span class="status-badge ${guest.rsvp_status === 'confirmed' ? 'status-confirmed' : guest.rsvp_status === 'declined' ? 'status-declined' : 'status-pending'}">
+                    ${guest.rsvp_status === 'confirmed' ? '✅ Confirmado' : guest.rsvp_status === 'declined' ? '❌ Não comparece' : '⏳ Aguardando'}
                 </span>
             </td>
             <td class="table-actions">
@@ -274,6 +297,7 @@ async function deleteGuest(id) {
 function setupEventListeners() {
     const searchInput = document.getElementById('search-input');
     const statusSelect = document.getElementById('status-filter');
+    const rsvpStatusSelect = document.getElementById('rsvp-status-filter');
     const groupSelect = document.getElementById('group-filter');
     
     if (searchInput) {
@@ -303,6 +327,17 @@ function setupEventListeners() {
             loadGuests();
         });
     }
+
+    if (rsvpStatusSelect) {
+        rsvpStatusSelect.addEventListener('change', (e) => {
+            rsvpStatusFilter = e.target.value;
+            currentPage = 1;
+            loadGuests();
+        });
+    }
+
+    const testConnectionBtn = document.getElementById('test-connection-btn');
+    if (testConnectionBtn) testConnectionBtn.addEventListener('click', testEvolutionConnection);
 }
 
 // ===== Pagination =====
@@ -693,7 +728,12 @@ async function sendNow() {
         await loadGuests();
         await updateDashboard();
     } catch (error) {
-        showToast('Erro ao enviar: ' + error.message, 'error');
+        if (error.message.includes('Imagem do convite não encontrada')) {
+            switchTab('settings');
+            showToast('Envie a imagem do convite em Configurações antes de enviar.', 'error');
+        } else {
+            showToast('Erro ao enviar: ' + error.message, 'error');
+        }
     } finally {
         showLoading(false);
     }
@@ -743,18 +783,36 @@ async function loadSettings() {
         document.getElementById('session-id').value = settings.evolution_session_id || '';
         document.getElementById('api-key').value = settings.evolution_api_key || '';
         document.getElementById('image-path').value = settings.image_path || '';
+        // Load couple name: prefer backend, fallback to localStorage, fallback to default
+        const coupleName = settings.couple_name || localStorage.getItem('couple_name') || 'Gabriela & Josemar';
+        const coupleInput = document.getElementById('couple-name');
+        if (coupleInput) coupleInput.value = coupleName;
+        updateCoupleNameDisplay(coupleName);
     } catch (error) {
         console.error('Error loading settings:', error);
+        const fallbackName = localStorage.getItem('couple_name') || 'Gabriela & Josemar';
+        const coupleInput = document.getElementById('couple-name');
+        if (coupleInput) coupleInput.value = fallbackName;
+        updateCoupleNameDisplay(fallbackName);
     }
 }
 
 async function saveSettings() {
+    const coupleName = document.getElementById('couple-name')?.value || '';
     const settings = {
         evolution_api_url: document.getElementById('server-url').value,
         evolution_session_id: document.getElementById('session-id').value,
         evolution_api_key: document.getElementById('api-key').value,
-        image_path: document.getElementById('image-path').value
+        image_path: document.getElementById('image-path').value,
+        couple_name: coupleName
     };
+    // Persist locally as a fallback
+    try {
+        localStorage.setItem('couple_name', coupleName);
+    } catch (e) {
+        // ignore storage errors
+    }
+    updateCoupleNameDisplay(coupleName || 'Gabriela & Josemar');
     
     showLoading(true);
     
@@ -766,6 +824,191 @@ async function saveSettings() {
     } finally {
         showLoading(false);
     }
+}
+
+async function testEvolutionConnection() {
+    const button = document.getElementById('test-connection-btn');
+    const result = document.getElementById('test-connection-result');
+    if (!button || !result) return;
+    button.disabled = true;
+    button.innerHTML = '<span class="btn-icon">⏳</span> Testando...';
+    result.style.display = 'block';
+    result.textContent = 'Testando a instância configurada…';
+    try {
+        const response = await api.testConnection();
+        result.className = response.success ? 'status-sent' : 'status-pending';
+        result.textContent = response.success ? '✅ Conexão bem-sucedida com a instância ativa.' : `❌ ${response.error || response.response || 'Não foi possível conectar.'}`;
+    } catch (error) {
+        result.className = 'status-pending';
+        result.textContent = `❌ ${error.message}`;
+    } finally {
+        button.disabled = false;
+        button.innerHTML = '<span class="btn-icon">🔍</span> Testar Conexão';
+    }
+}
+
+// ===== Evolution API instance management =====
+function escapeHtml(value) {
+    const element = document.createElement('div');
+    element.textContent = value || '';
+    return element.innerHTML;
+}
+
+async function loadEvolutionInstances() {
+    const container = document.getElementById('instances-list');
+    const empty = document.getElementById('instances-empty-state');
+    if (!container || !empty) return;
+    try {
+        const response = await api.getEvolutionInstances();
+        evolutionInstances = response.instances || [];
+        empty.style.display = evolutionInstances.length ? 'none' : 'block';
+        container.innerHTML = evolutionInstances.map(instance => {
+            const name = escapeHtml(instance.name);
+            const state = escapeHtml(instance.status || 'desconhecido');
+            return `<div class="instance-row ${instance.active ? 'active-instance' : ''}">
+                <div class="instance-details"><div class="instance-name">📱 ${name}${instance.active ? '<span class="instance-badge">Ativa para envios</span>' : ''}</div>
+                <div class="instance-meta">Status: ${state}${instance.owner ? ` · ${escapeHtml(instance.owner)}` : ''}</div></div>
+                <div class="instance-actions">
+                  <button class="btn btn-secondary" onclick="openQrModal('${name}')">QR Code</button>
+                  <button class="btn btn-secondary" onclick="activateEvolutionInstance('${name}')" ${instance.active ? 'disabled' : ''}>Ativar</button>
+                  <button class="btn btn-secondary" onclick="logoutEvolutionInstance('${name}')">Logout</button>
+                  <button class="btn btn-danger" onclick="deleteEvolutionInstance('${name}')">Excluir</button>
+                </div></div>`;
+        }).join('');
+    } catch (error) {
+        container.innerHTML = `<p class="empty-message">Não foi possível carregar as instâncias: ${escapeHtml(error.message)}</p>`;
+        empty.style.display = 'none';
+    }
+}
+
+function openCreateInstanceModal() {
+    document.getElementById('instance-name').value = '';
+    document.getElementById('create-instance-modal').classList.add('active');
+    document.getElementById('instance-name').focus();
+}
+
+function closeCreateInstanceModal() {
+    document.getElementById('create-instance-modal').classList.remove('active');
+}
+
+async function createEvolutionInstance() {
+    const input = document.getElementById('instance-name');
+    const name = input.value.trim();
+    if (!/^[a-z0-9]+$/.test(name)) {
+        showToast('Use somente letras minúsculas e números no nome da instância.', 'error');
+        input.focus();
+        return;
+    }
+    showLoading(true);
+    try {
+        await api.createEvolutionInstance(name);
+        closeCreateInstanceModal();
+        showToast('Instância criada. Leia o QR Code para conectá-la.', 'success');
+        await loadEvolutionInstances();
+        await openQrModal(name);
+    } catch (error) {
+        showToast(`Erro ao criar instância: ${error.message}`, 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function activateEvolutionInstance(name) {
+    try {
+        await api.activateEvolutionInstance(name);
+        document.getElementById('session-id').value = name;
+        showToast(`"${name}" agora é a instância usada nos envios.`, 'success');
+        await loadEvolutionInstances();
+    } catch (error) {
+        showToast(`Erro ao ativar instância: ${error.message}`, 'error');
+    }
+}
+
+async function logoutEvolutionInstance(name) {
+    if (!confirm(`Desconectar o WhatsApp da instância "${name}"?`)) return;
+    try {
+        await api.logoutEvolutionInstance(name);
+        showToast('Instância desconectada.', 'success');
+        await loadEvolutionInstances();
+    } catch (error) {
+        showToast(`Erro ao desconectar: ${error.message}`, 'error');
+    }
+}
+
+async function deleteEvolutionInstance(name) {
+    if (!confirm(`Excluir permanentemente a instância "${name}" e sua sessão WhatsApp?`)) return;
+    try {
+        await api.deleteEvolutionInstance(name);
+        if (document.getElementById('session-id').value === name) document.getElementById('session-id').value = '';
+        showToast('Instância excluída.', 'success');
+        await loadEvolutionInstances();
+    } catch (error) {
+        showToast(`Erro ao excluir: ${error.message}`, 'error');
+    }
+}
+
+function qrBase64(payload) {
+    if (!payload || typeof payload !== 'object') return null;
+    const value = payload.base64 || payload.qrcode?.base64 || payload.qrCode?.base64 || payload.qrcode?.data;
+    if (!value) return null;
+    return value.startsWith('data:image') ? value : `data:image/png;base64,${value}`;
+}
+
+async function openQrModal(name) {
+    qrInstanceName = name;
+    document.getElementById('qr-instance-title').textContent = `Conectar: ${name}`;
+    document.getElementById('qr-instance-modal').classList.add('active');
+    await refreshInstanceQr();
+    clearInterval(qrStatusTimer);
+    qrStatusTimer = setInterval(checkQrConnectionStatus, 10000);
+}
+
+function closeQrModal() {
+    clearInterval(qrStatusTimer);
+    qrStatusTimer = null;
+    qrInstanceName = null;
+    document.getElementById('qr-instance-modal').classList.remove('active');
+}
+
+async function refreshInstanceQr() {
+    if (!qrInstanceName) return;
+    const status = document.getElementById('qr-instance-status');
+    const image = document.getElementById('qr-instance-image');
+    status.textContent = 'Gerando QR Code…';
+    image.style.display = 'none';
+    try {
+        const response = await api.getEvolutionQr(qrInstanceName);
+        const source = qrBase64(response.qr);
+        if (!source) throw new Error('A Evolution API não retornou um QR Code. Tente atualizar.');
+        image.src = source;
+        image.style.display = 'block';
+        status.textContent = 'No WhatsApp, acesse Dispositivos conectados e leia este QR Code.';
+    } catch (error) {
+        status.textContent = `Não foi possível obter o QR Code: ${error.message}`;
+    }
+}
+
+async function checkQrConnectionStatus() {
+    if (!qrInstanceName) return;
+    try {
+        const response = await api.getEvolutionConnection(qrInstanceName);
+        const state = JSON.stringify(response.connection).toLowerCase();
+        if (state.includes('open') || state.includes('connected')) {
+            document.getElementById('qr-instance-status').textContent = '✅ WhatsApp conectado com sucesso.';
+            document.getElementById('qr-instance-image').style.display = 'none';
+            clearInterval(qrStatusTimer);
+            await loadEvolutionInstances();
+        }
+    } catch (error) {
+        // Keep the existing QR visible; a temporary status failure should not close the modal.
+    }
+}
+
+// Update the header subtitle with the couple name
+function updateCoupleNameDisplay(name) {
+    const el = document.getElementById('couple-name-display');
+    if (!el) return;
+    el.textContent = name || 'Gabriela & Josemar';
 }
 
 // ===== Utility Functions =====

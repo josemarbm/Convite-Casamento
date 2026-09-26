@@ -1,4 +1,6 @@
-# 📚 API Documentation - Swagger/OpenAPI
+# API Documentation - Node.js Monolith
+
+> A API principal agora é servida pelo Fastify em `http://localhost:3000/api`. Este arquivo preserva a documentação histórica do Flask durante a transição.
 
 A documentação interativa da API foi implementada usando **Flasgger**, uma ferramenta que integra Swagger/OpenAPI com Flask.
 
@@ -6,16 +8,16 @@ A documentação interativa da API foi implementada usando **Flasgger**, uma fer
 
 ### URL
 ```
-http://localhost:5000/docs
+http://localhost:3000/docs
 ```
 
 ### Características
 
-✅ **Documentação Interativa** - Teste endpoints diretamente no navegador  
-✅ **Swagger UI** - Interface visual clara e amigável  
-✅ **OpenAPI 3.0** - Padrão de documentação de APIs REST  
-✅ **Try It Out** - Execute requisições com autenticação JWT  
-✅ **Modelos** - Schemas de request/response documentados  
+✅ **Documentação Interativa** - Teste endpoints diretamente no navegador
+✅ **Swagger UI** - Interface visual clara e amigável
+✅ **OpenAPI 3.0** - Padrão de documentação de APIs REST
+✅ **Try It Out** - Execute requisições com autenticação JWT
+✅ **Modelos** - Schemas de request/response documentados
 
 ---
 
@@ -119,7 +121,7 @@ Resposta automática com Bearer Token adicionado aos headers
 
 **1. Login:**
 ```bash
-curl -X POST http://localhost:5000/api/auth/login \
+curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "username": "admin",
@@ -131,12 +133,12 @@ curl -X POST http://localhost:5000/api/auth/login \
 
 **3. Usar token:**
 ```bash
-curl -X GET http://localhost:5000/api/guests \
+curl -X GET http://localhost:3000/api/guests \
   -H "Authorization: Bearer SEU_TOKEN_AQUI"
 ```
 
 ### Via Postman
-1. Importar JSON do Swagger: `http://localhost:5000/apispec.json`
+1. Importar JSON do Swagger: `http://localhost:3000/apispec.json`
 2. Ir para "Auth" → "Bearer Token"
 3. Colar token
 4. Testar endpoints
@@ -176,9 +178,9 @@ curl -X GET http://localhost:5000/api/guests \
 
 | Recurso | URL |
 |---------|-----|
-| 📖 Swagger UI | http://localhost:5000/docs |
-| 📄 OpenAPI JSON | http://localhost:5000/apispec.json |
-| 🏠 API Base | http://localhost:5000/api |
+| 📖 Swagger UI | http://localhost:3000/docs |
+| 📄 OpenAPI JSON | http://localhost:3000/apispec.json |
+| 🏠 API Base | http://localhost:3000/api |
 
 ---
 
@@ -230,4 +232,4 @@ Cada endpoint tem:
 
 **Swagger está ✅ ativo e pronto para uso!**
 
-Acesse: **http://localhost:5000/docs**
+Acesse: **http://localhost:3000/docs**

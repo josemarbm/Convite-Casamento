@@ -13,23 +13,35 @@
     <link rel="stylesheet" href="css/styles.css" />
     <link rel="stylesheet" href="css/enhancements.css" />
     <style>
+      :root {
+        --primary-color: #d96f80;
+        --accent-color: #8d6ec9;
+        --surface-color: rgba(255, 255, 255, 0.82);
+        --text-color: #2b1f28;
+        --text-secondary: #6a5059;
+        --border-color: rgba(106, 80, 89, 0.14);
+        --input-background: rgba(255, 255, 255, 0.7);
+      }
+
       body {
         display: flex;
         justify-content: center;
         align-items: center;
         min-height: 100vh;
         margin: 0;
-        background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+        background: radial-gradient(circle at top, rgba(255,255,255,0.85), rgba(247,235,239,0.96) 26%, rgba(239,225,232,1) 100%);
         font-family: 'Inter', sans-serif;
+        color: var(--text-color);
       }
 
       .login-container {
         background: var(--surface-color);
-        padding: 2rem;
-        border-radius: 12px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-        width: 100%;
-        max-width: 400px;
+        padding: 2.25rem;
+        border-radius: 28px;
+        box-shadow: 0 28px 70px rgba(75, 51, 61, 0.16);
+        border: 1px solid var(--border-color);
+        width: min(100%, 430px);
+        backdrop-filter: blur(16px);
       }
 
       .login-header {
@@ -38,35 +50,41 @@
       }
 
       .login-header h1 {
-        font-size: 2rem;
+        font-size: clamp(2rem, 4vw, 2.6rem);
         margin: 0;
-        color: var(--primary-color);
+        background: linear-gradient(135deg, #f4b7c0 0%, #d96f80 25%, #8d6ec9 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
 
       .login-header p {
-        font-size: 0.9rem;
+        font-size: 0.92rem;
         color: var(--text-secondary);
-        margin: 0.5rem 0 0 0;
+        margin-top: 0.5rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
 
       .form-group {
-        margin-bottom: 1.5rem;
+        margin-bottom: 1.25rem;
       }
 
       .form-group label {
         display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 500;
+        margin-bottom: 0.55rem;
+        font-weight: 700;
         color: var(--text-color);
       }
 
       .form-group input {
         width: 100%;
-        padding: 0.75rem;
-        border: 2px solid var(--border-color);
-        border-radius: 6px;
+        padding: 0.9rem 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
         font-size: 1rem;
-        transition: all 0.3s ease;
+        transition: all 0.2s ease;
         background: var(--input-background);
         color: var(--text-color);
         box-sizing: border-box;
@@ -74,8 +92,8 @@
 
       .form-group input:focus {
         outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(199, 21, 133, 0.1);
+        border-color: rgba(217, 111, 128, 0.5);
+        box-shadow: 0 0 0 4px rgba(217, 111, 128, 0.12);
       }
 
       .form-group input::placeholder {
@@ -84,21 +102,22 @@
 
       .submit-btn {
         width: 100%;
-        padding: 0.75rem;
-        background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+        padding: 0.95rem 1rem;
+        background: linear-gradient(135deg, #f4b7c0 0%, #d96f80 32%, #8d6ec9 100%);
         color: white;
         border: none;
-        border-radius: 6px;
+        border-radius: 14px;
         font-size: 1rem;
-        font-weight: 600;
+        font-weight: 700;
         cursor: pointer;
-        transition: all 0.3s ease;
-        margin-top: 1rem;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        margin-top: 0.5rem;
+        box-shadow: 0 18px 38px rgba(173, 97, 120, 0.25);
       }
 
       .submit-btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 5px 20px rgba(199, 21, 133, 0.3);
+        box-shadow: 0 22px 42px rgba(173, 97, 120, 0.28);
       }
 
       .submit-btn:active {
@@ -114,13 +133,13 @@
       .toggle-form {
         text-align: center;
         margin-top: 1.5rem;
-        font-size: 0.9rem;
+        font-size: 0.92rem;
       }
 
       .toggle-form a {
         color: var(--primary-color);
         text-decoration: none;
-        font-weight: 600;
+        font-weight: 700;
         cursor: pointer;
       }
 
@@ -129,12 +148,13 @@
       }
 
       .message {
-        padding: 0.75rem;
-        border-radius: 6px;
+        padding: 0.8rem 0.9rem;
+        border-radius: 12px;
         margin-bottom: 1rem;
         display: none;
         text-align: center;
         font-size: 0.9rem;
+        font-weight: 600;
       }
 
       .message.show {
@@ -142,35 +162,25 @@
       }
 
       .message.error {
-        background: #ffebee;
-        color: #c62828;
-        border: 1px solid #ef5350;
+        background: rgba(230, 109, 109, 0.12);
+        color: #9d3b3b;
+        border: 1px solid rgba(230, 109, 109, 0.18);
       }
 
       .message.success {
-        background: #e8f5e9;
-        color: #2e7d32;
-        border: 1px solid #66bb6a;
-      }
-
-      [data-theme="light"] {
-        --primary-color: #c71585;
-        --accent-color: #ff69b4;
-        --surface-color: #ffffff;
-        --text-color: #1a1a1a;
-        --text-secondary: #666666;
-        --border-color: #e0e0e0;
-        --input-background: #f5f5f5;
+        background: rgba(60, 181, 140, 0.12);
+        color: #1d7d5f;
+        border: 1px solid rgba(60, 181, 140, 0.18);
       }
 
       [data-theme="dark"] {
-        --primary-color: #ff1493;
-        --accent-color: #ff69b4;
-        --surface-color: #2a2a2a;
-        --text-color: #ffffff;
-        --text-secondary: #b0b0b0;
-        --border-color: #444444;
-        --input-background: #3a3a3a;
+        --primary-color: #f2a7b3;
+        --accent-color: #b5a1ed;
+        --surface-color: rgba(30, 23, 27, 0.86);
+        --text-color: #fff5f6;
+        --text-secondary: #d7c1c7;
+        --border-color: rgba(255,255,255,0.08);
+        --input-background: rgba(255,255,255,0.04);
       }
 
       .loading-spinner {

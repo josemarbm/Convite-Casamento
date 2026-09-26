@@ -1,4 +1,6 @@
-# Wedding Invitation Backend API
+# Legacy Flask API
+
+> A aplicação principal foi migrada para o monólito Node.js em `http://localhost:3000`. Este diretório permanece como referência durante a transição.
 
 Flask REST API para o sistema de envio de convites de casamento via WhatsApp.
 
@@ -17,7 +19,7 @@ make backend-init-db
 make backend-run
 ``
 
-O servidor estará disponível em `http://localhost:5000`
+O servidor estará disponível em `http://localhost:3000`
 
 ### Configuração
 
@@ -247,6 +249,22 @@ Atualizar configurações.
 #### `GET /api/test-connection`
 
 Testar conexão com EvolutionAPI.
+
+---
+
+### Instâncias Evolution API
+
+Todas as rotas exigem autenticação Bearer e mantêm a chave global da Evolution API no backend.
+
+- `GET /api/evolution/instances` — lista instâncias e indica a ativa para os envios.
+- `POST /api/evolution/instances` — cria uma instância com `{ "name": "casamento2026" }`.
+- `GET /api/evolution/instances/{name}/connection` — consulta o estado da conexão.
+- `GET /api/evolution/instances/{name}/qr` — obtém ou renova o QR Code de conexão.
+- `DELETE /api/evolution/instances/{name}/logout` — desconecta o WhatsApp, mantendo a instância.
+- `DELETE /api/evolution/instances/{name}` — exclui a instância e a sessão permanentemente.
+- `POST /api/evolution/instances/{name}/activate` — torna a instância escolhida a usada nos envios.
+
+Os nomes aceitos usam apenas letras minúsculas e números.
 
 #### `GET /api/stats`
 

@@ -2,7 +2,7 @@
 .DS_Store
 Thumbs.db
 *.log
-app.py
+
 convite.png
 # Python
 __pycache__/
@@ -42,3 +42,6 @@ env.sh
 # Application Specific
 api/uploads/
 !api/uploads/.gitkeep
+
+node_modules/
+dist/

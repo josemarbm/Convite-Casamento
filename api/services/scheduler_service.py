@@ -92,7 +92,8 @@ class SchedulerService:
                     
                     try:
                         # Personalize message
-                        message = template.content.replace('{nome}', guest.name)
+                        from app import render_invitation_message
+                        message = render_invitation_message(template.content, guest)
                         
                         # Send via WhatsApp
                         result = self.whatsapp_service.send_message(

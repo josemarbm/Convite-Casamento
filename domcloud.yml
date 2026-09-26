@@ -1,0 +1,28 @@
+source:
+  url: https://github.com/josemarbm/Convite-Casamento
+  directory: api
+
+features:
+  - python stable
+
+nginx:
+  root: public_html
+  passenger:
+    enabled: "on"
+    app_type: python
+    python: .pyenv/shims/python
+    startup_file: app.py
+    app_start_command: python app.py
+    env_var_list:
+      - PYTHONDONTWRITEBYTECODE=1
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+      - FLASK_SECRET_KEY=CHANGE_THIS_TO_A_LONG_RANDOM_VALUE
+      - DATABASE_URL=mysql+pymysql://DB_USER:DB_PASSWORD@DB_HOST:3306/DB_NAME
+      - EVOLUTION_API_URL=https://EVOLUTION_API_HOST
+      - EVOLUTION_API_KEY=CHANGE_THIS_TO_YOUR_EVOLUTION_API_KEY
+      - EVOLUTION_SESSION_ID=default
+
+commands:
+  - mkdir -p uploads data
+  - pip install -r requirements.txt

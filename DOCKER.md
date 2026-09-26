@@ -10,17 +10,11 @@ Sistema completo containerizado com Docker Compose.
 - Volume persistente para instâncias
 - Acessível em: `http://localhost:8080/manager`
 
-### 2. **backend** (Porta 5000)
+### 2. **app** (Porta 3000)
 
-- Flask REST API
-- SQLite database
-- Comunicação interna com EvolutionAPI
-- Acessível em: `http://localhost:5000`
-
-### 3. **frontend** (Porta 3000)
-
-- Nginx servindo aplicação web
-- Interface de usuário
+- Node.js com Fastify e React
+- API e frontend no mesmo domínio
+- Usa o MySQL e a Evolution API externos
 - Acessível em: `http://localhost:3000`
 
 ## 🚀 Como Usar
@@ -38,8 +32,7 @@ docker-compose up -d
 docker-compose logs -f
 
 # Serviço específico
-docker-compose logs -f backend
-docker-compose logs -f frontend
+docker-compose logs -f app
 docker-compose logs -f evolution-api
 ```
 
@@ -58,23 +51,20 @@ docker-compose up -d --build
 ### Acessar container
 
 ```bash
-# Backend
-docker exec -it wedding-backend bash
-
-# Frontend
-docker exec -it wedding-frontend sh
+# Aplicação
+docker exec -it wedding-app sh
 ```
 
 ## 📂 Volumes
 
 - `evolution_data`: Dados das instâncias WhatsApp
-- `backend_data`: Uploads de imagens
-- `backend_db`: Banco de dados SQLite
+- `app_uploads`: Uploads de imagens
+- `mysql_data`: Banco MySQL, definido no compose de infraestrutura
 
 ## 🌐 Acessos
 
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:5000
+- **Aplicação Node**: http://localhost:3000
+- **Health check**: http://localhost:3000/health
 - **EvolutionAPI Manager**: http://localhost:8080/manager
 
 ## ⚙️ Configuração
@@ -99,9 +89,9 @@ env_file:
 
 ```bash
 # Backend (monta volume no código)
-docker-compose up backend
+docker-compose up app
 
-# Frontend - edite arquivos em web/ e recarregue navegador
+# Edite web-react/ e execute npm run dev para hot reload
 ```
 
 ### Build e Deploy
@@ -111,8 +101,8 @@ docker-compose up backend
 docker-compose build
 
 # Push para registry (exemplo)
-docker tag wedding-backend:latest seu-registry/wedding-backend:latest
-docker push seu-registry/wedding-backend:latest
+docker tag wedding-app:latest seu-registry/wedding-app:latest
+docker push seu-registry/wedding-app:latest
 ```
 
 ## 🛠️ Comandos Úteis
@@ -137,13 +127,13 @@ docker stats
 
 - Verifique se todos containers estão na mesma network: `docker network inspect convite-casamento-ui_wedding-network`
 
-**Erro de permissão no banco:**
+**Erro de permissão em uploads:**
 
-- Ajuste permissões: `docker exec wedding-backend chown -R 1000:1000 /app`
+- Ajuste permissões: `docker exec wedding-app chown -R 1000:1000 /app/uploads`
 
-**Frontend não carrega:**
+**Aplicação não carrega:**
 
-- Verifique logs do nginx: `docker logs wedding-frontend`
+- Verifique logs: `docker logs wedding-app`
 - Confirme que porta 3000 não está em uso
 
 ## 📦 Estrutura de Rede
