@@ -21,6 +21,17 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Git Version (Codacy)
+        id: version
+        uses: codacy/git-version@2.8.8
+
+      - name: Print Version
+        run: |
+          echo "Calculated Version: ${{ steps.version.outputs.version }}"
+          echo "SemVer: ${{ steps.version.outputs.semver }}"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -105,6 +116,6 @@ jobs:
         run: npm run build
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
