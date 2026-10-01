@@ -1,0 +1,110 @@
+name: CI/CD & SemVer Release
+
+on:
+  push:
+    branches:
+      - develop
+      - release
+      - main
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches:
+      - develop
+      - release
+      - main
+
+jobs:
+  validate:
+    name: Validate, Test & Build (Node.js)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Type Check
+        run: npm run typecheck
+
+      - name: Run Tests
+        run: npx vitest run
+
+      - name: Build Project
+        run: npm run build
+
+  deploy-dev:
+    name: Deploy to Development
+    needs: validate
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: development
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Development Deployment
+        run: |
+          echo "Running deployment tasks for Development environment (develop branch)..."
+
+  deploy-qa:
+    name: Deploy to QA
+    needs: validate
+    if: github.ref == 'refs/heads/release' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: qa
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: QA Deployment
+        run: |
+          echo "Running deployment tasks for QA environment (release branch)..."
+
+  deploy-production:
+    name: Deploy to Production
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Production Deployment
+        run: |
+          echo "Running deployment tasks for Production environment (main branch)..."
+
+  github-release:
+    name: Create SemVer GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Project
+        run: npm run build
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
