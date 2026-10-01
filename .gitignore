@@ -4,30 +4,6 @@ Thumbs.db
 *.log
 
 convite.png
-# Python
-__pycache__/
-*.py[cod]
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Virtual Environments
-venv/
-.venv/
-env/
-ENV/
 
 # Environment Variables
 .env
@@ -37,9 +13,6 @@ env.sh
 .vscode/
 .idea/
 
-# Application Specific
-api/uploads/
-!api/uploads/.gitkeep
-
 node_modules/
+dist/
 dist/
