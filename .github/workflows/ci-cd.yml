@@ -93,15 +93,18 @@ jobs:
         run: |
           echo "Running deployment tasks for Production environment (main branch)..."
 
-  github-release:
-    name: Create SemVer GitHub Release
-    if: startsWith(github.ref, 'refs/tags/v')
+  release:
+    name: Bump Version & Create Release
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -115,7 +118,11 @@ jobs:
       - name: Build Project
         run: npm run build
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v3
+      - name: Bump version and push tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v7
         with:
-          generate_release_notes: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Output Release Version
+        run: echo "Released version ${{ steps.tag_version.outputs.new_tag }}"
