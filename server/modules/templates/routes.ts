@@ -19,14 +19,26 @@ export async function registerTemplateRoutes(app: FastifyInstance, options: Opti
     if (!await authenticateRequest(request, options.jwtSecret)) return reply.code(401).send({ error: 'Token is missing or invalid' });
     const { name, content, is_default: isDefault = false } = request.body ?? {};
     if (!name?.trim() || !content?.trim()) return reply.code(400).send({ error: 'Name and content are required' });
-    const template = await options.db.messageTemplate.create({ data: { name: name.trim(), content, isDefault } });
+    const data = { name: name.trim(), content, isDefault };
+    const template = isDefault
+      ? await options.db.$transaction(async (transaction) => {
+        await transaction.messageTemplate.updateMany({ where: { isDefault: true }, data: { isDefault: false } });
+        return transaction.messageTemplate.create({ data });
+      })
+      : await options.db.messageTemplate.create({ data });
     return reply.code(201).send(templateResponse(template));
   });
 
   app.put<{ Params: { id: string }; Body: { name?: string; content?: string; is_default?: boolean } }>('/api/templates/:id', async (request, reply) => {
     if (!await authenticateRequest(request, options.jwtSecret)) return reply.code(401).send({ error: 'Token is missing or invalid' });
     const body = request.body ?? {};
-    const template = await options.db.messageTemplate.update({ where: { id: Number(request.params.id) }, data: { ...(body.name === undefined ? {} : { name: body.name.trim() }), ...(body.content === undefined ? {} : { content: body.content }), ...(body.is_default === undefined ? {} : { isDefault: body.is_default }) } });
+    const data = { ...(body.name === undefined ? {} : { name: body.name.trim() }), ...(body.content === undefined ? {} : { content: body.content }), ...(body.is_default === undefined ? {} : { isDefault: body.is_default }) };
+    const template = body.is_default === true
+      ? await options.db.$transaction(async (transaction) => {
+        await transaction.messageTemplate.updateMany({ where: { isDefault: true }, data: { isDefault: false } });
+        return transaction.messageTemplate.update({ where: { id: Number(request.params.id) }, data });
+      })
+      : await options.db.messageTemplate.update({ where: { id: Number(request.params.id) }, data });
     return templateResponse(template);
   });
 
