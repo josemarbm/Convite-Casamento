@@ -4,11 +4,11 @@ import { useAuth } from '../auth/AuthProvider';
 import AppShell from '../components/AppShell';
 import GroupManagement from '../components/GroupManagement';
 import GuestList from '../components/GuestList';
-import MetricCard from '../components/MetricCard';
 import SettingsPanel from '../components/SettingsPanel';
 import ScheduleManagement from '../components/ScheduleManagement';
 import TemplateManagement from '../components/TemplateManagement';
 import EventManagement from '../components/EventManagement';
+import EventOverview from '../components/EventOverview';
 import { useEvents } from '../events/EventProvider';
 
 type Guest = { id: number; name: string; phone: string; group_id: number | null; group_name: string | null; status: string; rsvp_status: string };
@@ -17,7 +17,7 @@ type GuestGroup = { id: number; name: string; description: string | null; guest_
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
-  const { activeEvent, loading: eventsLoading, error: eventsError } = useEvents();
+  const { events, activeEvent, loading: eventsLoading, error: eventsError, refreshEvents, selectEvent } = useEvents();
   const [activeSection, setActiveSection] = useState('overview');
   const [data, setData] = useState<GuestPage | null>(null);
   const [groups, setGroups] = useState<GuestGroup[]>([]);
@@ -55,9 +55,15 @@ export default function DashboardPage() {
     resetGuestForm();
     setError('');
     setNotice('');
+    if (activeSection !== 'guests') {
+      setData(null);
+      setGroups([]);
+      setLoading(false);
+      return;
+    }
     void loadGuests();
     apiRequest<GuestGroup[]>('/groups').then(setGroups).catch(() => setGroups([]));
-  }, [activeEvent?.id, eventsLoading]);
+  }, [activeEvent?.id, activeSection, eventsLoading]);
 
   async function importGuests(file: File) {
     try { const result = await uploadFile('/guests/import', file); setNotice(`${result.imported} convidados importados.`); await loadGuests(); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Importação falhou.'); }
@@ -122,24 +128,24 @@ export default function DashboardPage() {
   }
 
   const guests = data?.guests ?? [];
-  const confirmed = guests.filter((guest) => guest.rsvp_status === 'confirmed').length;
-  const pending = guests.filter((guest) => guest.status === 'pending').length;
-
   function renderWorkspace() {
     if (eventsLoading) return <div className="workspace-panel management-loading">Carregando eventos...</div>;
     if (activeSection === 'events' || !activeEvent) return <EventManagement />;
+    if (activeSection === 'overview') return <EventOverview
+      events={events}
+      activeEventId={activeEvent.id}
+      loading={eventsLoading}
+      error={eventsError}
+      onOpenEvent={(eventId) => { selectEvent(eventId); setActiveSection('guests'); }}
+      onCreateEvent={() => setActiveSection('events')}
+      onRetry={() => void refreshEvents()}
+    />;
     if (activeSection === 'settings') return <SettingsPanel />;
     if (activeSection === 'groups') return <GroupManagement />;
     if (activeSection === 'messages') return <><TemplateManagement /><ScheduleManagement /></>;
+    if (activeSection !== 'guests') return null;
 
     return <>
-      <section className="metric-grid" aria-label="Resumo da lista">
-        <MetricCard label="Convidados" value={data?.total ?? '—'} detail="na lista total" />
-        <MetricCard label="Confirmados" value={data ? confirmed : '—'} detail="respostas positivas" tone="green" />
-        <MetricCard label="Aguardando" value={data ? pending : '—'} detail="convites pendentes" tone="amber" />
-        <MetricCard label="Página" value={data?.pages ?? '—'} detail="de convidados" tone="rose" />
-      </section>
-
       <section className="workspace-panel quick-add-panel">
         <div className="panel-heading"><div><span className="section-label">Próxima ação</span><h2>Adicionar convidado</h2><p>Inclua alguém na lista e organize o grupo depois.</p></div><button className="text-action" type="button" onClick={() => setActiveSection('groups')}>Gerenciar grupos</button></div>
         <div className="inline-form modern-form"><label><span>Nome completo</span><input aria-label="Nome" placeholder="Ex.: Maria da Silva" value={name} onChange={(event) => setName(event.target.value)} /></label><label><span>Telefone</span><input aria-label="Telefone" placeholder="(11) 99999-9999" value={phone} onChange={(event) => setPhone(event.target.value)} /></label><label><span>Grupo</span><select aria-label="Grupo" value={groupId} onChange={(event) => setGroupId(event.target.value)}><option value="">Sem grupo</option>{groups.map((group) => <option value={group.id} key={group.id}>{group.name}</option>)}</select></label><div className="guest-form-actions"><button className="primary-button" disabled={!name.trim() || !phone.trim() || workingGuestId !== null} onClick={editingGuest ? updateGuest : addGuest}>{editingGuest ? 'Salvar alterações' : 'Adicionar convidado'}</button>{editingGuest && <button className="secondary-button" type="button" onClick={resetGuestForm}>Cancelar</button>}</div></div>
@@ -154,7 +160,7 @@ export default function DashboardPage() {
   }
 
   return <AppShell activeSection={activeSection} username={user?.username} onNavigate={setActiveSection} onLogout={logout}>
-    <header className="workspace-header"><div><span className="section-label">{activeEvent?.event_type_label ?? 'Organização'}</span><h1>{activeEvent?.name ?? 'Seus eventos'}</h1><p>{activeEvent ? [activeEvent.hosts, activeEvent.location].filter(Boolean).join(' · ') || 'Gerencie os convidados e o RSVP deste evento.' : eventsError || 'Crie seu primeiro evento para começar.'}</p></div><div className="header-actions"><button className="primary-button compact-button" type="button" disabled={sending || !activeEvent || eventsLoading} onClick={sendNow}>{sending ? 'Enviando...' : 'Enviar pendentes'}</button></div></header>
+    <header className="workspace-header"><div><span className="section-label">{activeSection === 'overview' ? 'Todos os eventos' : activeEvent?.event_type_label ?? 'Organização'}</span><h1>{activeSection === 'overview' ? 'Visão geral' : activeSection === 'guests' ? 'Convidados' : activeEvent?.name ?? 'Seus eventos'}</h1><p>{activeSection === 'overview' ? 'Acompanhe convidados e confirmações de cada evento.' : activeEvent ? [activeEvent.name, activeEvent.hosts, activeEvent.location].filter(Boolean).join(' · ') : eventsError || 'Crie seu primeiro evento para começar.'}</p></div><div className="header-actions">{activeSection === 'guests' && <button className="primary-button compact-button" type="button" disabled={sending || !activeEvent || eventsLoading} onClick={sendNow}>{sending ? 'Enviando...' : 'Enviar pendentes'}</button>}</div></header>
     {renderWorkspace()}
   </AppShell>;
 }

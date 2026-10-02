@@ -14,6 +14,10 @@ export type ManagedEvent = {
   image_path: string | null;
   archived_at: string | null;
   created_at: string;
+  guest_count?: number;
+  confirmed_count?: number;
+  pending_rsvp_count?: number;
+  declined_count?: number;
 };
 
 type EventContextValue = {

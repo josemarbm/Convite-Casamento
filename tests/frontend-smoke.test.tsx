@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import { getRsvpToken } from '../web-react/src/App';
 import SettingsPanel from '../web-react/src/components/SettingsPanel';
+import EventOverview from '../web-react/src/components/EventOverview';
 import RsvpPage from '../web-react/src/pages/RsvpPage';
 
 describe('frontend smoke', () => {
@@ -14,6 +15,41 @@ describe('frontend smoke', () => {
 
     expect(html).toContain('Confirmação de presença');
     expect(html).toContain('Carregando convite');
+  });
+
+  it('renders a cross-event overview without the guest management form', () => {
+    const html = renderToString(<EventOverview
+      events={[{
+        id: 8,
+        name: 'Festa da Ana',
+        event_type: 'birthday',
+        event_type_label: 'Aniversário',
+        custom_type: null,
+        hosts: 'Ana',
+        date_time: '2027-04-03T19:00:00.000Z',
+        location: 'Salão Azul',
+        address: null,
+        image_path: null,
+        archived_at: null,
+        created_at: '2026-10-02T00:00:00.000Z',
+        guest_count: 8,
+        confirmed_count: 4,
+        pending_rsvp_count: 3,
+        declined_count: 1,
+      }]}
+      activeEventId={8}
+      loading={false}
+      error=""
+      onOpenEvent={() => {}}
+      onCreateEvent={() => {}}
+      onRetry={() => {}}
+    />);
+
+    expect(html).toContain('Eventos ativos');
+    expect(html).toContain('Aguardando RSVP');
+    expect(html).toContain('Festa da Ana');
+    expect(html).toContain('Abrir convidados');
+    expect(html).not.toContain('Adicionar convidado');
   });
 
   it('renders the settings panel for the dashboard', () => {

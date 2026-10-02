@@ -191,6 +191,19 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(169, 94, 77,
 .event-row-details strong { overflow-wrap: anywhere; }
 .event-row-details span { margin-top: 5px; color: var(--muted-ink); font-size: .72rem; }
 .event-row-actions { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+.event-overview-metrics { margin-bottom: 18px; }
+.event-overview-panel { max-width: none; }
+.event-overview-list { display: grid; border-top: 1px solid var(--line); }
+.event-overview-row { display: grid; grid-template-columns: minmax(190px, 1.2fr) minmax(230px, 1.3fr) auto; align-items: center; gap: 24px; padding: 18px 4px; border-bottom: 1px solid var(--line); }
+.event-overview-row.selected { background: #fffaf5; }
+.event-overview-identity { min-width: 0; }
+.event-overview-title { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.event-overview-title h3 { min-width: 0; margin: 0; overflow-wrap: anywhere; font: 400 1.15rem/1.2 var(--display); }
+.event-overview-identity p { margin: 6px 0 0; color: var(--muted-ink); font-size: .72rem; }
+.event-overview-counts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; }
+.event-overview-counts span { color: var(--muted-ink); font-size: .72rem; white-space: nowrap; }
+.event-overview-counts strong { color: var(--ink); font-size: .82rem; }
+.event-overview-action { width: max-content; white-space: nowrap; }
 .archived-toggle { margin-top: 20px; }
 .muted-event-empty { margin: 16px 0 0; color: var(--muted-ink); font-size: .78rem; }
 .rsvp-event-name { margin-bottom: 12px; font: 400 1.4rem var(--display); }
@@ -213,6 +226,9 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(169, 94, 77,
 	.event-form-actions .primary-button { width: 100%; }
 	.event-row { align-items: flex-start; flex-direction: column; }
 	.event-row-actions { width: 100%; justify-content: flex-end; }
+	.event-overview-row { grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 16px 0; }
+	.event-overview-action { width: 100%; }
+	.event-overview-counts { max-width: 340px; }
 }
 .schedule-form { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; align-items: end; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
 .schedule-form label { display: grid; gap: 7px; margin: 0; color: var(--muted-ink); font-size: .69rem; font-weight: 700; }
