@@ -12,8 +12,11 @@ type Props = {
   guests: Guest[];
   loading: boolean;
   workingId: number | null;
+  resendingId: number | null;
+  sendingAll: boolean;
   onEdit: (guest: Guest) => void;
   onDelete: (guest: Guest) => void;
+  onResend: (guest: Guest) => void;
 };
 
 function statusLabel(status: string) {
@@ -28,7 +31,7 @@ function deliveryLabel(status: string) {
   return 'Pendente';
 }
 
-export default function GuestList({ guests, loading, workingId, onEdit, onDelete }: Props) {
+export default function GuestList({ guests, loading, workingId, resendingId, sendingAll, onEdit, onDelete, onResend }: Props) {
   if (loading) {
     return (
       <div className="guest-table-loading" aria-label="Carregando convidados">
@@ -58,7 +61,7 @@ export default function GuestList({ guests, loading, workingId, onEdit, onDelete
           <span className="guest-group">{guest.group_name ?? 'Sem grupo'}</span>
           <span><span className={`status-pill delivery-${guest.status}`}>{deliveryLabel(guest.status)}</span></span>
           <span><span className={`status-pill rsvp-${guest.rsvp_status}`}>{statusLabel(guest.rsvp_status)}</span></span>
-          <span className="guest-actions"><button className="row-action" type="button" onClick={() => onEdit(guest)}>Editar</button><button className="row-action danger-action" type="button" disabled={workingId === guest.id} onClick={() => onDelete(guest)}>{workingId === guest.id ? 'Excluindo...' : 'Excluir'}</button></span>
+          <span className="guest-actions">{guest.status !== 'pending' && <button className="row-action" type="button" disabled={sendingAll || workingId === guest.id || resendingId !== null} onClick={() => onResend(guest)}>{resendingId === guest.id ? 'Enviando...' : 'Reenviar convite'}</button>}<button className="row-action" type="button" disabled={resendingId === guest.id} onClick={() => onEdit(guest)}>Editar</button><button className="row-action danger-action" type="button" disabled={workingId === guest.id || resendingId === guest.id} onClick={() => onDelete(guest)}>{workingId === guest.id ? 'Excluindo...' : 'Excluir'}</button></span>
         </article>
       ))}
     </div>

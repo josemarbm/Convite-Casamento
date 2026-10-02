@@ -3,6 +3,7 @@ import { renderToString } from 'react-dom/server';
 import { getRsvpToken } from '../web-react/src/App';
 import SettingsPanel from '../web-react/src/components/SettingsPanel';
 import EventOverview from '../web-react/src/components/EventOverview';
+import GuestList from '../web-react/src/components/GuestList';
 import RsvpPage from '../web-react/src/pages/RsvpPage';
 
 describe('frontend smoke', () => {
@@ -15,6 +16,36 @@ describe('frontend smoke', () => {
 
     expect(html).toContain('Confirmação de presença');
     expect(html).toContain('Carregando convite');
+  });
+
+  it('offers a resend action for each guest', () => {
+    const html = renderToString(<GuestList
+      guests={[{ id: 2, name: 'João', phone: '55119999', group_id: null, group_name: null, status: 'sent', rsvp_status: 'pending' }]}
+      loading={false}
+      workingId={null}
+      resendingId={null}
+      sendingAll={false}
+      onEdit={() => {}}
+      onDelete={() => {}}
+      onResend={() => {}}
+    />);
+
+    expect(html).toContain('Reenviar convite');
+  });
+
+  it('does not offer a resend action for pending invitations', () => {
+    const html = renderToString(<GuestList
+      guests={[{ id: 2, name: 'João', phone: '55119999', group_id: null, group_name: null, status: 'pending', rsvp_status: 'pending' }]}
+      loading={false}
+      workingId={null}
+      resendingId={null}
+      sendingAll={false}
+      onEdit={() => {}}
+      onDelete={() => {}}
+      onResend={() => {}}
+    />);
+
+    expect(html).not.toContain('Reenviar convite');
   });
 
   it('renders a cross-event overview without the guest management form', () => {

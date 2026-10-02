@@ -29,7 +29,8 @@ export default function DashboardPage() {
   const [groupId, setGroupId] = useState('');
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
   const [workingGuestId, setWorkingGuestId] = useState<number | null>(null);
-  const [sending, setSending] = useState(false);
+  const [resendingGuestId, setResendingGuestId] = useState<number | null>(null);
+  const [sendingMode, setSendingMode] = useState<'pending' | 'all' | null>(null);
 
   async function loadGuests() {
     setLoading(true);
@@ -123,8 +124,49 @@ export default function DashboardPage() {
   }
 
   async function sendNow() {
-    setSending(true);
-    try { const result = await apiRequest<{ message: string }>('/send/direct', { method: 'POST', body: JSON.stringify({ filters: { status: 'pending' } }) }); setNotice(result.message); await loadGuests(); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Não foi possível enviar os convites.'); } finally { setSending(false); }
+    setSendingMode('pending');
+    try { const result = await apiRequest<{ message: string }>('/send/direct', { method: 'POST', body: JSON.stringify({ filters: { status: 'pending' } }) }); setNotice(result.message); await loadGuests(); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Não foi possível enviar os convites.'); } finally { setSendingMode(null); }
+  }
+
+  async function resendAllInvitations() {
+    if (!window.confirm('Deseja reenviar os convites para todos os convidados que já receberam ou tiveram falha? Convites pendentes serão ignorados.')) return;
+    setSendingMode('all');
+    setError('');
+    setNotice('');
+    try {
+      const result = await apiRequest<{ results: Array<{ success: boolean }> }>('/send/direct', {
+        method: 'POST',
+        body: JSON.stringify({ filters: { exclude_status: 'pending' } }),
+      });
+      const sentCount = result.results.filter((item) => item.success).length;
+      setNotice(`Convites reenviados: ${sentCount}/${result.results.length}.`);
+      await loadGuests();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Não foi possível reenviar os convites.');
+    } finally {
+      setSendingMode(null);
+    }
+  }
+
+  async function resendInvitation(guest: Guest) {
+    setResendingGuestId(guest.id);
+    setError('');
+    setNotice('');
+    try {
+      const result = await apiRequest<{ results: Array<{ guest_id: number; success: boolean; error?: string }> }>('/send/direct', {
+        method: 'POST',
+        body: JSON.stringify({ guest_ids: [guest.id] }),
+      });
+      const outcome = result.results.find((item) => item.guest_id === guest.id);
+      setNotice(outcome?.success
+        ? `Convite reenviado para ${guest.name}.`
+        : `Não foi possível reenviar o convite para ${guest.name}${outcome?.error ? `: ${outcome.error}` : '.'}`);
+      await loadGuests();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Não foi possível reenviar o convite.');
+    } finally {
+      setResendingGuestId(null);
+    }
   }
 
   const guests = data?.guests ?? [];
@@ -154,13 +196,13 @@ export default function DashboardPage() {
       <section className="workspace-panel guest-workspace">
         <div className="panel-heading"><div><span className="section-label">Lista atual</span><h2>Convidados</h2><p>Veja o andamento dos convites e das confirmações.</p></div><div className="guest-list-tools"><label className="excel-button">Importar Excel<input type="file" accept=".xlsx,.xls" onChange={(event) => event.target.files?.[0] && importGuests(event.target.files[0])} /></label><button className="excel-button" type="button" onClick={exportGuests}>Exportar Excel</button><span className="page-indicator">Página 1 de {data?.pages ?? '—'}</span></div></div>
         {notice && <p className="inline-notice" role="status">{notice}</p>}
-        {error ? <div className="inline-error" role="alert"><strong>Não foi possível atualizar a lista.</strong><span>{error}</span><button className="text-action" type="button" onClick={() => void loadGuests()}>Tentar novamente</button></div> : <GuestList guests={guests} loading={loading} workingId={workingGuestId} onEdit={startEditingGuest} onDelete={deleteGuest} />}
+        {error ? <div className="inline-error" role="alert"><strong>Não foi possível atualizar a lista.</strong><span>{error}</span><button className="text-action" type="button" onClick={() => void loadGuests()}>Tentar novamente</button></div> : <GuestList guests={guests} loading={loading} workingId={workingGuestId} resendingId={resendingGuestId} sendingAll={sendingMode !== null} onEdit={startEditingGuest} onDelete={deleteGuest} onResend={resendInvitation} />}
       </section>
     </>;
   }
 
   return <AppShell activeSection={activeSection} username={user?.username} onNavigate={setActiveSection} onLogout={logout}>
-    <header className="workspace-header"><div><span className="section-label">{activeSection === 'overview' ? 'Todos os eventos' : activeEvent?.event_type_label ?? 'Organização'}</span><h1>{activeSection === 'overview' ? 'Visão geral' : activeSection === 'guests' ? 'Convidados' : activeEvent?.name ?? 'Seus eventos'}</h1><p>{activeSection === 'overview' ? 'Acompanhe convidados e confirmações de cada evento.' : activeEvent ? [activeEvent.name, activeEvent.hosts, activeEvent.location].filter(Boolean).join(' · ') : eventsError || 'Crie seu primeiro evento para começar.'}</p></div><div className="header-actions">{activeSection === 'guests' && <button className="primary-button compact-button" type="button" disabled={sending || !activeEvent || eventsLoading} onClick={sendNow}>{sending ? 'Enviando...' : 'Enviar pendentes'}</button>}</div></header>
+    <header className="workspace-header"><div><span className="section-label">{activeSection === 'overview' ? 'Todos os eventos' : activeEvent?.event_type_label ?? 'Organização'}</span><h1>{activeSection === 'overview' ? 'Visão geral' : activeSection === 'guests' ? 'Convidados' : activeEvent?.name ?? 'Seus eventos'}</h1><p>{activeSection === 'overview' ? 'Acompanhe convidados e confirmações de cada evento.' : activeEvent ? [activeEvent.name, activeEvent.hosts, activeEvent.location].filter(Boolean).join(' · ') : eventsError || 'Crie seu primeiro evento para começar.'}</p></div><div className="header-actions">{activeSection === 'guests' && <><button className="secondary-button compact-button" type="button" disabled={sendingMode !== null || resendingGuestId !== null || !activeEvent || eventsLoading} onClick={resendAllInvitations}>{sendingMode === 'all' ? 'Reenviando...' : 'Reenviar para todos'}</button><button className="primary-button compact-button" type="button" disabled={sendingMode !== null || resendingGuestId !== null || !activeEvent || eventsLoading} onClick={sendNow}>{sendingMode === 'pending' ? 'Enviando...' : 'Enviar pendentes'}</button></>}</div></header>
     {renderWorkspace()}
   </AppShell>;
 }
