@@ -3,8 +3,19 @@ import { createHash, randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { EvolutionClient } from '../../lib/evolution-client.js';
+import { EVENT_TYPE_LABELS, type EventType } from '../events/presets.js';
 
 type Guest = Prisma.GuestGetPayload<{ include: { group: true } }>;
+type InvitationEvent = {
+  name: string;
+  eventType: string;
+  customType: string | null;
+  hosts: string | null;
+  dateTime: Date | null;
+  location: string | null;
+  address: string | null;
+  imagePath: string | null;
+};
 
 export function formatPhone(phone: string) {
   const digits = phone.replace(/\D/g, '');
@@ -12,8 +23,31 @@ export function formatPhone(phone: string) {
   return digits.startsWith('55') ? digits : `55${digits}`;
 }
 
-export function renderInvitationMessage(content: string, guest: Pick<Guest, 'name'>, coupleName = '', token = '') {
-  return content.replaceAll('{nome}', guest.name).replaceAll('{couple_name}', coupleName).replaceAll('{token}', token);
+export function renderInvitationMessage(content: string, guest: Pick<Guest, 'name'>, eventOrHosts: InvitationEvent | string = '', token = '', rsvpUrl = '') {
+  const event = typeof eventOrHosts === 'string' ? null : eventOrHosts;
+  const hosts = event?.hosts ?? (typeof eventOrHosts === 'string' ? eventOrHosts : '');
+  const eventType = event?.eventType === 'other'
+    ? event.customType ?? EVENT_TYPE_LABELS.other
+    : event && event.eventType in EVENT_TYPE_LABELS
+      ? EVENT_TYPE_LABELS[event.eventType as EventType]
+      : event?.eventType ?? '';
+  const eventDate = event?.dateTime ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(event.dateTime) : '';
+  const eventTime = event?.dateTime ? new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(event.dateTime) : '';
+  const values: Record<string, string> = {
+    '{nome}': guest.name,
+    '{couple_name}': hosts,
+    '{hosts}': hosts,
+    '{token}': token,
+    '{event_name}': event?.name ?? '',
+    '{event_type}': eventType,
+    '{event_date}': eventDate,
+    '{event_time}': eventTime,
+    '{event_date_time}': eventDate && eventTime ? `${eventDate} às ${eventTime}` : eventDate,
+    '{event_location}': event?.location ?? '',
+    '{event_address}': event?.address ?? '',
+    '{rsvp_url}': rsvpUrl,
+  };
+  return Object.entries(values).reduce((message, [placeholder, value]) => message.replaceAll(placeholder, value), content);
 }
 
 function imageMimeType(filePath: string) {
@@ -25,6 +59,7 @@ type DirectSendOptions = {
   db: PrismaClient;
   client: EvolutionClient;
   sessionId: string;
+  eventId: number;
   templateId?: number;
   guestIds?: number[];
   groupId?: number | null;
@@ -32,23 +67,18 @@ type DirectSendOptions = {
 };
 
 export async function sendDirect(options: DirectSendOptions) {
+  const event = await options.db.event.findUnique({ where: { id: options.eventId } });
+  if (!event || event.archivedAt) throw new Error('Active event not found');
   const template = options.templateId
-    ? await options.db.messageTemplate.findUnique({ where: { id: options.templateId } })
-    : await options.db.messageTemplate.findFirst({ where: { isDefault: true } });
+    ? await options.db.messageTemplate.findFirst({ where: { id: options.templateId, eventId: event.id } })
+    : await options.db.messageTemplate.findFirst({ where: { eventId: event.id, isDefault: true } });
   if (!template) throw new Error('No template found');
   if (!options.sessionId.trim()) throw new Error('Nenhuma instância ativa do WhatsApp foi configurada.');
-  const settings = options.db.setting?.findMany
-    ? await options.db.setting.findMany({ where: { key: { in: ['couple_name', 'image_path'] } } })
-    : [];
-  const settingValues = Object.fromEntries(settings.map((setting) => [setting.key, setting.value]));
-  const coupleName = settingValues.couple_name ?? '';
-  const imagePath = settingValues.image_path ?? '';
+  const imagePath = event.imagePath ?? '';
 
-  const where: Prisma.GuestWhereInput = options.guestIds?.length
-    ? { id: { in: options.guestIds } }
-    : options.groupId
-      ? { groupId: options.groupId }
-      : {};
+  const where: Prisma.GuestWhereInput = { eventId: event.id };
+  if (options.guestIds?.length) where.id = { in: options.guestIds };
+  if (options.groupId) where.groupId = options.groupId;
   const filters = options.filters ?? {};
   if (filters.search) where.OR = [{ name: { contains: filters.search } }, { phone: { contains: filters.search } }];
   if (filters.status) where.status = filters.status;
@@ -56,11 +86,12 @@ export async function sendDirect(options: DirectSendOptions) {
 
   const guests = await options.db.guest.findMany({ where, include: { group: true } });
   if (!guests.length) throw new Error('No guests found');
+  const publicUrl = (process.env.PUBLIC_APP_URL ?? 'http://localhost:3000').replace(/\/+$/, '');
 
   const results = [];
   for (const guest of guests) {
     const token = randomBytes(32).toString('base64url');
-    const message = renderInvitationMessage(template.content, guest, coupleName, token);
+    const message = renderInvitationMessage(template.content, guest, event, token, `${publicUrl}/rsvp/${encodeURIComponent(token)}`);
     let result;
     if (imagePath) {
       try {

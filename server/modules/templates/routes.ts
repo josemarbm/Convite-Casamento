@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
 import { authenticateRequest } from '../../lib/auth.js';
+import { requireActiveEvent } from '../../lib/event-context.js';
 
 type Options = { db: PrismaClient; jwtSecret: string };
 
@@ -11,18 +12,22 @@ function templateResponse(template: { id: number; name: string; content: string;
 export async function registerTemplateRoutes(app: FastifyInstance, options: Options) {
   app.get('/api/templates', async (request, reply) => {
     if (!await authenticateRequest(request, options.jwtSecret)) return reply.code(401).send({ error: 'Token is missing or invalid' });
-    const templates = await options.db.messageTemplate.findMany({ orderBy: { createdAt: 'desc' } });
+    const event = await requireActiveEvent(request, reply, options.db);
+    if (!event) return;
+    const templates = await options.db.messageTemplate.findMany({ where: { eventId: event.id }, orderBy: { createdAt: 'desc' } });
     return templates.map(templateResponse);
   });
 
   app.post<{ Body: { name?: string; content?: string; is_default?: boolean } }>('/api/templates', async (request, reply) => {
     if (!await authenticateRequest(request, options.jwtSecret)) return reply.code(401).send({ error: 'Token is missing or invalid' });
+    const event = await requireActiveEvent(request, reply, options.db);
+    if (!event) return;
     const { name, content, is_default: isDefault = false } = request.body ?? {};
     if (!name?.trim() || !content?.trim()) return reply.code(400).send({ error: 'Name and content are required' });
-    const data = { name: name.trim(), content, isDefault };
+    const data = { eventId: event.id, name: name.trim(), content, isDefault };
     const template = isDefault
       ? await options.db.$transaction(async (transaction) => {
-        await transaction.messageTemplate.updateMany({ where: { isDefault: true }, data: { isDefault: false } });
+        await transaction.messageTemplate.updateMany({ where: { eventId: event.id, isDefault: true }, data: { isDefault: false } });
         return transaction.messageTemplate.create({ data });
       })
       : await options.db.messageTemplate.create({ data });
@@ -31,11 +36,15 @@ export async function registerTemplateRoutes(app: FastifyInstance, options: Opti
 
   app.put<{ Params: { id: string }; Body: { name?: string; content?: string; is_default?: boolean } }>('/api/templates/:id', async (request, reply) => {
     if (!await authenticateRequest(request, options.jwtSecret)) return reply.code(401).send({ error: 'Token is missing or invalid' });
+    const event = await requireActiveEvent(request, reply, options.db);
+    if (!event) return;
     const body = request.body ?? {};
+    const existing = await options.db.messageTemplate.findFirst({ where: { id: Number(request.params.id), eventId: event.id } });
+    if (!existing) return reply.code(404).send({ error: 'Template not found in the active event' });
     const data = { ...(body.name === undefined ? {} : { name: body.name.trim() }), ...(body.content === undefined ? {} : { content: body.content }), ...(body.is_default === undefined ? {} : { isDefault: body.is_default }) };
     const template = body.is_default === true
       ? await options.db.$transaction(async (transaction) => {
-        await transaction.messageTemplate.updateMany({ where: { isDefault: true }, data: { isDefault: false } });
+        await transaction.messageTemplate.updateMany({ where: { eventId: event.id, isDefault: true }, data: { isDefault: false } });
         return transaction.messageTemplate.update({ where: { id: Number(request.params.id) }, data });
       })
       : await options.db.messageTemplate.update({ where: { id: Number(request.params.id) }, data });
@@ -44,7 +53,10 @@ export async function registerTemplateRoutes(app: FastifyInstance, options: Opti
 
   app.delete<{ Params: { id: string } }>('/api/templates/:id', async (request, reply) => {
     if (!await authenticateRequest(request, options.jwtSecret)) return reply.code(401).send({ error: 'Token is missing or invalid' });
-    const template = await options.db.messageTemplate.findUnique({ where: { id: Number(request.params.id) } });
+    const event = await requireActiveEvent(request, reply, options.db);
+    if (!event) return;
+    const template = await options.db.messageTemplate.findFirst({ where: { id: Number(request.params.id), eventId: event.id } });
+    if (!template) return reply.code(404).send({ error: 'Template not found in the active event' });
     if (template?.isDefault) return reply.code(400).send({ error: 'Cannot delete the default template' });
     await options.db.messageTemplate.delete({ where: { id: Number(request.params.id) } });
     return reply.code(204).send();

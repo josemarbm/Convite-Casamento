@@ -6,11 +6,13 @@ const token = 'guest-rsvp-token';
 const hash = createHash('sha256').update(token).digest('hex');
 
 function mockDb() {
+  const event = { id: 8, name: 'Festa da Ana', eventType: 'birthday', customType: null, hosts: 'Ana', dateTime: new Date('2027-04-03T19:00:00.000Z'), location: 'Salão Azul', address: 'Rua Central, 10' };
   const guest = {
     id: 7,
     name: 'Joao Silva',
     rsvpStatus: 'pending',
     rsvpRespondedAt: null,
+    event,
   };
   return {
     guest: {
@@ -27,8 +29,8 @@ describe('public RSVP routes', () => {
     const response = await app.inject({ method: 'GET', url: `/api/rsvp/${token}` });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toMatchObject({ name: 'Joao Silva', status: 'pending' });
-    expect((db as any).guest.findUnique).toHaveBeenCalledWith({ where: { rsvpTokenHash: hash } });
+    expect(response.json()).toMatchObject({ name: 'Joao Silva', status: 'pending', event: { name: 'Festa da Ana', event_type: 'birthday', hosts: 'Ana', location: 'Salão Azul' } });
+    expect((db as any).guest.findUnique).toHaveBeenCalledWith({ where: { rsvpTokenHash: hash }, include: { event: true } });
     await app.close();
   });
 

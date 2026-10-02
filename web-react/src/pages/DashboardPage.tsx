@@ -8,6 +8,8 @@ import MetricCard from '../components/MetricCard';
 import SettingsPanel from '../components/SettingsPanel';
 import ScheduleManagement from '../components/ScheduleManagement';
 import TemplateManagement from '../components/TemplateManagement';
+import EventManagement from '../components/EventManagement';
+import { useEvents } from '../events/EventProvider';
 
 type Guest = { id: number; name: string; phone: string; group_id: number | null; group_name: string | null; status: string; rsvp_status: string };
 type GuestPage = { guests: Guest[]; total: number; pages: number };
@@ -15,6 +17,7 @@ type GuestGroup = { id: number; name: string; description: string | null; guest_
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
+  const { activeEvent, loading: eventsLoading, error: eventsError } = useEvents();
   const [activeSection, setActiveSection] = useState('overview');
   const [data, setData] = useState<GuestPage | null>(null);
   const [groups, setGroups] = useState<GuestGroup[]>([]);
@@ -41,9 +44,20 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
+    if (eventsLoading) return;
+    if (!activeEvent) {
+      setData(null);
+      setGroups([]);
+      setLoading(false);
+      setActiveSection('events');
+      return;
+    }
+    resetGuestForm();
+    setError('');
+    setNotice('');
     void loadGuests();
     apiRequest<GuestGroup[]>('/groups').then(setGroups).catch(() => setGroups([]));
-  }, []);
+  }, [activeEvent?.id, eventsLoading]);
 
   async function importGuests(file: File) {
     try { const result = await uploadFile('/guests/import', file); setNotice(`${result.imported} convidados importados.`); await loadGuests(); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Importação falhou.'); }
@@ -112,6 +126,8 @@ export default function DashboardPage() {
   const pending = guests.filter((guest) => guest.status === 'pending').length;
 
   function renderWorkspace() {
+    if (eventsLoading) return <div className="workspace-panel management-loading">Carregando eventos...</div>;
+    if (activeSection === 'events' || !activeEvent) return <EventManagement />;
     if (activeSection === 'settings') return <SettingsPanel />;
     if (activeSection === 'groups') return <GroupManagement />;
     if (activeSection === 'messages') return <><TemplateManagement /><ScheduleManagement /></>;
@@ -138,7 +154,7 @@ export default function DashboardPage() {
   }
 
   return <AppShell activeSection={activeSection} username={user?.username} onNavigate={setActiveSection} onLogout={logout}>
-    <header className="workspace-header"><div><span className="section-label">Painel de celebração</span><h1>Olá, {user?.username}</h1><p>Acompanhe os convidados e deixe cada detalhe encaminhado.</p></div><div className="header-actions"><button className="primary-button compact-button" type="button" disabled={sending} onClick={sendNow}>{sending ? 'Enviando...' : 'Enviar pendentes'}</button></div></header>
+    <header className="workspace-header"><div><span className="section-label">{activeEvent?.event_type_label ?? 'Organização'}</span><h1>{activeEvent?.name ?? 'Seus eventos'}</h1><p>{activeEvent ? [activeEvent.hosts, activeEvent.location].filter(Boolean).join(' · ') || 'Gerencie os convidados e o RSVP deste evento.' : eventsError || 'Crie seu primeiro evento para começar.'}</p></div><div className="header-actions"><button className="primary-button compact-button" type="button" disabled={sending || !activeEvent || eventsLoading} onClick={sendNow}>{sending ? 'Enviando...' : 'Enviar pendentes'}</button></div></header>
     {renderWorkspace()}
   </AppShell>;
 }

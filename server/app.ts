@@ -14,6 +14,7 @@ import { EvolutionClient } from './lib/evolution-client.js';
 import { registerSendingRoutes } from './modules/sending/routes.js';
 import multipart from '@fastify/multipart';
 import { registerUploadRoutes } from './modules/uploads/routes.js';
+import { registerEventRoutes } from './modules/events/routes.js';
 
 type AppOptions = {
   db?: typeof db;
@@ -37,6 +38,11 @@ export function buildApp(options: AppOptions = {}) {
     jwtSecret: options.jwtSecret ?? process.env.JWT_SECRET ?? 'change-this-secret',
   });
   void registerRsvpRoutes(app, { db: options.db ?? db });
+  void registerEventRoutes(app, {
+    db: options.db ?? db,
+    jwtSecret: options.jwtSecret ?? process.env.JWT_SECRET ?? 'change-this-secret',
+    scheduler: options.scheduler,
+  });
   void registerGroupRoutes(app, { db: options.db ?? db, jwtSecret: options.jwtSecret ?? process.env.JWT_SECRET ?? 'change-this-secret' });
   void registerTemplateRoutes(app, { db: options.db ?? db, jwtSecret: options.jwtSecret ?? process.env.JWT_SECRET ?? 'change-this-secret' });
   void registerSettingsRoutes(app, { db: options.db ?? db, jwtSecret: options.jwtSecret ?? process.env.JWT_SECRET ?? 'change-this-secret' });

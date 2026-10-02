@@ -25,7 +25,7 @@ describe('frontend smoke', () => {
     expect(html).toContain('Criar instância');
     expect(html).toContain('Ler QR');
     expect(html).not.toContain('Adicionar grupo de convidados');
-    expect(html).toContain('Caminho da imagem do convite');
-    expect(html).toContain('Escolher imagem');
+    expect(html).not.toContain('Nome dos noivos');
+    expect(html).not.toContain('Caminho da imagem do convite');
   });
 });
