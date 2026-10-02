@@ -176,6 +176,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(169, 94, 77,
 .template-row { align-items: start; }
 .template-row.default { background: #fffaf5; }
 .template-title { display: flex; align-items: center; gap: 9px; }
+.template-actions { display: flex; align-items: center; align-self: flex-end; gap: 16px; flex-shrink: 0; }
 .template-row p { max-width: 65ch; margin: 8px 0 0; color: var(--muted-ink); white-space: pre-wrap; font-size: .78rem; }
 .schedule-panel { max-width: 940px; }
 .schedule-form { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; align-items: end; padding-bottom: 24px; border-bottom: 1px solid var(--line); }

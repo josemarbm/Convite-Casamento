@@ -25,6 +25,7 @@ describe('sending service', () => {
 
     expect(renderInvitationMessage('Oi {nome}', guest, 'Gabriela & Josemar')).toBe('Oi Maria');
     expect(result).toMatchObject({ message: 'Sent 1/1 messages', results: [{ guest_id: 1, success: true }] });
+    expect((db as any).messageTemplate.findFirst).toHaveBeenCalledWith({ where: { isDefault: true } });
     expect((client as any).sendText).toHaveBeenCalledWith('casamento2026', '5511999999999', expect.stringMatching(/^Oi Maria, com carinho, Gabriela & Josemar: [A-Za-z0-9_-]+$/));
     expect((db as any).guest.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ rsvpTokenHash: expect.stringMatching(/^[a-f0-9]{64}$/), status: 'sent' }) }));
   });
