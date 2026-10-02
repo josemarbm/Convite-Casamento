@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useEvents } from '../events/EventProvider';
 
 type NavigationItem = {
   id: string;
@@ -11,6 +12,7 @@ const navigationItems: NavigationItem[] = [
   { id: 'guests', label: 'Convidados', shortLabel: 'Lista' },
   { id: 'groups', label: 'Grupos', shortLabel: 'Grupos' },
   { id: 'messages', label: 'Mensagens', shortLabel: 'Mensagens' },
+  { id: 'events', label: 'Eventos', shortLabel: 'Eventos' },
   { id: 'settings', label: 'Configurações', shortLabel: 'Config.' },
 ];
 
@@ -23,6 +25,7 @@ type Props = {
 };
 
 export default function AppShell({ activeSection, username, onNavigate, onLogout, children }: Props) {
+  const { events, activeEvent, selectEvent } = useEvents();
   return (
     <div className="app-shell">
       <aside className="app-sidebar" aria-label="Navegação principal">
@@ -30,9 +33,10 @@ export default function AppShell({ activeSection, username, onNavigate, onLogout
           <span className="brand-mark" aria-hidden="true">C</span>
           <div>
             <strong>Convites</strong>
-            <span>Gabriela & Josemar</span>
+            <span>{activeEvent?.name ?? 'Nenhum evento ativo'}</span>
           </div>
         </div>
+        <label className="event-context-select"><span>Evento ativo</span><select aria-label="Evento ativo" value={activeEvent?.id ?? ''} onChange={(event) => selectEvent(Number(event.target.value))}><option value="" disabled>Selecione um evento</option>{events.map((event) => <option value={event.id} key={event.id}>{event.name}</option>)}</select></label>
         <nav className="sidebar-nav">
           {navigationItems.map((item) => (
             <button
@@ -57,12 +61,13 @@ export default function AppShell({ activeSection, username, onNavigate, onLogout
         <header className="mobile-topbar">
           <div className="brand-lockup compact">
             <span className="brand-mark" aria-hidden="true">C</span>
-            <strong>Convites</strong>
+            <strong>{activeEvent?.name ?? 'Convites'}</strong>
           </div>
           <button className="mobile-account" type="button" onClick={onLogout} aria-label="Sair da conta">
             {username?.slice(0, 1).toUpperCase() ?? 'A'}
           </button>
         </header>
+        <label className="event-context-select mobile-event-context"><span>Evento ativo</span><select aria-label="Evento ativo" value={activeEvent?.id ?? ''} onChange={(event) => selectEvent(Number(event.target.value))}><option value="" disabled>Selecione um evento</option>{events.map((event) => <option value={event.id} key={event.id}>{event.name}</option>)}</select></label>
         <nav className="mobile-nav" aria-label="Navegação principal">
           {navigationItems.map((item) => (
             <button

@@ -15,4 +15,11 @@ describe('Prisma schema', () => {
     expect(schema).toContain('rsvpStatus');
     expect(schema).toContain('rsvpRespondedAt');
   });
+
+  it('models events and keeps existing resources assignable during backfill', () => {
+    expect(schema).toMatch(/model Event \{[\s\S]*?@@map\("events"\)/);
+    for (const model of ['Guest', 'Group', 'MessageTemplate', 'ScheduledSend']) {
+      expect(schema).toMatch(new RegExp(`model ${model} \\{[\\s\\S]*?eventId\\s+Int\\?`));
+    }
+  });
 });

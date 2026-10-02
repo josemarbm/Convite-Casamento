@@ -20,10 +20,11 @@ describe('SchedulerService', () => {
   it('executes a pending send and persists completion', async () => {
     const db = {
       scheduledSend: {
-        findUnique: vi.fn().mockResolvedValue({ id: 2, status: 'pending', templateId: 3, groupId: null, guestIds: '[7]' }),
+        findUnique: vi.fn().mockResolvedValue({ id: 2, eventId: 8, status: 'pending', templateId: 3, groupId: null, guestIds: '[7]' }),
         update: vi.fn().mockResolvedValue({}),
       },
-      messageTemplate: { findUnique: vi.fn().mockResolvedValue({ id: 3, content: 'Oi {nome}' }) },
+      event: { findUnique: vi.fn().mockResolvedValue({ id: 8, name: 'Evento', eventType: 'other', customType: 'Festa', hosts: null, dateTime: null, location: null, address: null, imagePath: null, archivedAt: null }) },
+      messageTemplate: { findFirst: vi.fn().mockResolvedValue({ id: 3, content: 'Oi {nome}' }) },
       guest: { findMany: vi.fn().mockResolvedValue([{ id: 7, name: 'Maria', phone: '5511', group: null }]), update: vi.fn().mockResolvedValue({}) },
     } as never;
     const client = { sendText: vi.fn().mockResolvedValue({ success: true, statusCode: 201, data: {} }) } as never;

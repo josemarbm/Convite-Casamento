@@ -4,6 +4,31 @@
 
 A documentação interativa da API foi implementada usando **Flasgger**, uma ferramenta que integra Swagger/OpenAPI com Flask.
 
+## Fastify Atual: Eventos
+
+Os endpoints abaixo pertencem à API Fastify atual. Eles não estão publicados na página Swagger histórica descrita neste documento.
+
+### Gestão de eventos
+
+- `GET /api/events` - Listar eventos ativos autenticados
+- `GET /api/events?archived=true` - Listar eventos arquivados
+- `POST /api/events` - Criar evento e seu template inicial
+- `PUT /api/events/:id` - Atualizar dados do evento
+- `POST /api/events/:id/archive` - Arquivar e cancelar envios pendentes
+- `POST /api/events/:id/restore` - Restaurar evento arquivado
+
+Tipos aceitos: `wedding`, `birthday`, `graduation`, `baptism` e `other`. O tipo `other` requer `custom_type`. Os campos de evento incluem `name`, `hosts`, `date_time`, `location` e `address`.
+
+### Contexto de evento
+
+As chamadas autenticadas de convidados, grupos, templates, envio, imagem e importação/exportação devem incluir `X-Event-Id: <id>` para um evento ativo. O servidor rejeita chamadas sem contexto e referências a registros de outro evento. A seleção de template padrão é isolada por evento.
+
+O evento criado recebe um template editável conforme seu tipo, com estes placeholders: `{nome}`, `{hosts}`, `{event_name}`, `{event_type}`, `{event_date}`, `{event_time}`, `{event_date_time}`, `{event_location}`, `{event_address}`, `{rsvp_url}` e `{token}`. `{couple_name}` continua aceito como alias de `{hosts}` para preservar templates existentes.
+
+O RSVP público usa o token individual em `/api/rsvp/:token`, não exige `X-Event-Id` e devolve os dados do evento associado. As respostas continuam sendo `confirmed` e `declined` para todos os tipos.
+
+Na inicialização, `npm run db:setup` usa `prisma db push` e executa o backfill idempotente do evento legado. O backfill preserva tokens/respostas, associa apenas linhas ainda sem evento e mantém os templates customizados existentes. Teste a atualização em uma cópia do banco antes de produção.
+
 ## 🚀 Acessar a Documentação
 
 ### URL

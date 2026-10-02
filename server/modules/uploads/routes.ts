@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
 import * as XLSX from 'xlsx';
 import { authenticateRequest } from '../../lib/auth.js';
+import { requireActiveEvent } from '../../lib/event-context.js';
 
 type Options = { db: PrismaClient; jwtSecret: string; uploadDir?: string };
 const imageTypes = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
@@ -28,7 +29,9 @@ export function workbookFromGuests(guests: Array<{ name: string; phone: string }
 export async function registerUploadRoutes(app: FastifyInstance, options: Options) {
   app.get('/api/images/preview', async (request, reply) => {
     if (!await authenticateRequest(request, options.jwtSecret)) return reply.code(401).send({ error: 'Token is missing or invalid' });
-    const imagePath = (await options.db.setting.findUnique({ where: { key: 'image_path' } }))?.value;
+    const event = await requireActiveEvent(request, reply, options.db);
+    if (!event) return;
+    const imagePath = event.imagePath;
     if (!imagePath) return reply.code(404).send({ error: 'No invitation image configured' });
 
     try {
@@ -41,6 +44,8 @@ export async function registerUploadRoutes(app: FastifyInstance, options: Option
 
   app.post('/api/images/upload', async (request, reply) => {
     if (!await authenticateRequest(request, options.jwtSecret)) return reply.code(401).send({ error: 'Token is missing or invalid' });
+    const event = await requireActiveEvent(request, reply, options.db);
+    if (!event) return;
     const file = await request.file();
     if (!file || !imageTypes.has(file.mimetype)) return reply.code(400).send({ error: 'Only PNG, JPG, GIF, or WEBP images are accepted' });
     const uploadDir = options.uploadDir ?? process.env.UPLOAD_DIR ?? path.resolve('uploads');
@@ -49,12 +54,14 @@ export async function registerUploadRoutes(app: FastifyInstance, options: Option
     const target = path.join(uploadDir, filename);
     const contents = await file.toBuffer();
     await writeFile(target, contents);
-    await options.db.setting.upsert({ where: { key: 'image_path' }, update: { value: target }, create: { key: 'image_path', value: target } });
+    await options.db.event.update({ where: { id: event.id }, data: { imagePath: target } });
     return { path: target, filename, preview: `data:${file.mimetype};base64,${contents.toString('base64')}` };
   });
 
   app.post('/api/guests/import', async (request, reply) => {
     if (!await authenticateRequest(request, options.jwtSecret)) return reply.code(401).send({ error: 'Token is missing or invalid' });
+    const event = await requireActiveEvent(request, reply, options.db);
+    if (!event) return;
     const file = await request.file();
     if (!file || !/\.(xlsx|xls)$/i.test(file.filename)) return reply.code(400).send({ error: 'An .xlsx or .xls file is required' });
     const workbook = XLSX.read(await file.toBuffer(), { type: 'buffer' });
@@ -64,9 +71,9 @@ export async function registerUploadRoutes(app: FastifyInstance, options: Option
     for (const row of rows) {
       const guest = normalizeSpreadsheetRow(row);
       if (!guest.name || !guest.phone) { skipped++; continue; }
-      const existing = await options.db.guest.findFirst({ where: { phone: guest.phone } });
+      const existing = await options.db.guest.findFirst({ where: { phone: guest.phone, eventId: event.id } });
       if (existing) { skipped++; continue; }
-      await options.db.guest.create({ data: guest });
+      await options.db.guest.create({ data: { ...guest, eventId: event.id } });
       imported++;
     }
     return { message: `Imported ${imported} guests`, imported, skipped };
@@ -74,7 +81,9 @@ export async function registerUploadRoutes(app: FastifyInstance, options: Option
 
   app.get('/api/guests/export', async (request, reply) => {
     if (!await authenticateRequest(request, options.jwtSecret)) return reply.code(401).send({ error: 'Token is missing or invalid' });
-    const guests = await options.db.guest.findMany({ orderBy: { name: 'asc' } });
+    const event = await requireActiveEvent(request, reply, options.db);
+    if (!event) return;
+    const guests = await options.db.guest.findMany({ where: { eventId: event.id }, orderBy: { name: 'asc' } });
     return reply.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet').header('Content-Disposition', 'attachment; filename="convidados.xlsx"').send(workbookFromGuests(guests));
   });
 }
