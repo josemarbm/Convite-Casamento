@@ -63,7 +63,7 @@ type DirectSendOptions = {
   templateId?: number;
   guestIds?: number[];
   groupId?: number | null;
-  filters?: { search?: string; status?: string; group_id?: string | number };
+  filters?: { search?: string; status?: string; exclude_status?: string; group_id?: string | number };
 };
 
 export async function sendDirect(options: DirectSendOptions) {
@@ -81,7 +81,12 @@ export async function sendDirect(options: DirectSendOptions) {
   if (options.groupId) where.groupId = options.groupId;
   const filters = options.filters ?? {};
   if (filters.search) where.OR = [{ name: { contains: filters.search } }, { phone: { contains: filters.search } }];
-  if (filters.status) where.status = filters.status;
+  if (filters.status || filters.exclude_status) {
+    where.status = {
+      ...(filters.status ? { equals: filters.status } : {}),
+      ...(filters.exclude_status ? { not: filters.exclude_status } : {}),
+    };
+  }
   if (filters.group_id) where.groupId = Number(filters.group_id);
 
   const guests = await options.db.guest.findMany({ where, include: { group: true } });

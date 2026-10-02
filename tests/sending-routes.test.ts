@@ -64,4 +64,36 @@ describe('event-scoped send routes', () => {
     expect(scheduleSend).toHaveBeenCalledWith(21, expect.any(Date));
     await app.close();
   });
+
+  it('limits a direct resend to the selected guest in the active event', async () => {
+    const db = mockDb();
+    const sendText = vi.fn().mockResolvedValue({ success: true, statusCode: 201, data: {} });
+    const app = buildApp({ db: db as never, jwtSecret: 'test-secret', evolutionClient: { sendText } as never });
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/send/direct',
+      headers: await headers(),
+      payload: { guest_ids: [2] },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(db.guest.findMany).toHaveBeenCalledWith({ where: { eventId: 8, id: { in: [2] } }, include: { group: true } });
+    expect(sendText).toHaveBeenCalledTimes(1);
+    await app.close();
+  });
+
+  it('excludes pending guests from a bulk resend', async () => {
+    const db = mockDb();
+    const app = buildApp({ db: db as never, jwtSecret: 'test-secret', evolutionClient: { sendText: vi.fn().mockResolvedValue({ success: true, statusCode: 201, data: {} }) } as never });
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/send/direct',
+      headers: await headers(),
+      payload: { filters: { exclude_status: 'pending' } },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(db.guest.findMany).toHaveBeenCalledWith({ where: { eventId: 8, status: { not: 'pending' } }, include: { group: true } });
+    await app.close();
+  });
 });

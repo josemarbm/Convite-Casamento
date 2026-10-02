@@ -67,7 +67,27 @@ export async function registerEventRoutes(app: FastifyInstance, options: Options
     if (!await authenticateRequest(request, options.jwtSecret)) return reply.code(401).send({ error: 'Token is missing or invalid' });
     const where = request.query.archived === 'true' ? { archivedAt: { not: null } } : { archivedAt: null };
     const events = await options.db.event.findMany({ where, orderBy: { createdAt: 'asc' } });
-    return events.map(eventResponse);
+    if (!events.length) return [];
+    const groupedGuests = await options.db.guest.groupBy({
+      by: ['eventId', 'rsvpStatus'],
+      where: { eventId: { in: events.map((event) => event.id) } },
+      _count: { _all: true },
+    });
+    const counts = new Map<number, { guest_count: number; confirmed_count: number; pending_rsvp_count: number; declined_count: number }>();
+    for (const row of groupedGuests) {
+      if (row.eventId === null) continue;
+      const summary = counts.get(row.eventId) ?? { guest_count: 0, confirmed_count: 0, pending_rsvp_count: 0, declined_count: 0 };
+      const count = row._count._all;
+      summary.guest_count += count;
+      if (row.rsvpStatus === 'confirmed') summary.confirmed_count += count;
+      if (row.rsvpStatus === 'pending') summary.pending_rsvp_count += count;
+      if (row.rsvpStatus === 'declined') summary.declined_count += count;
+      counts.set(row.eventId, summary);
+    }
+    return events.map((event) => ({
+      ...eventResponse(event),
+      ...(counts.get(event.id) ?? { guest_count: 0, confirmed_count: 0, pending_rsvp_count: 0, declined_count: 0 }),
+    }));
   });
 
   app.post<{ Body: EventBody }>('/api/events', async (request, reply) => {

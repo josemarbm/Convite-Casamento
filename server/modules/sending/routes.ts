@@ -12,7 +12,7 @@ export async function registerSendingRoutes(app: FastifyInstance, options: Optio
     return (await options.db.setting.findUnique({ where: { key: 'evolution_session_id' } }))?.value ?? process.env.EVOLUTION_SESSION_ID ?? '';
   }
 
-  app.post<{ Body: { template_id?: number; guest_ids?: number[]; group_id?: number; filters?: { search?: string; status?: string; group_id?: string | number } } }>('/api/send/direct', async (request, reply) => {
+  app.post<{ Body: { template_id?: number; guest_ids?: number[]; group_id?: number; filters?: { search?: string; status?: string; exclude_status?: string; group_id?: string | number } } }>('/api/send/direct', async (request, reply) => {
     if (!await authenticateRequest(request, options.jwtSecret)) return reply.code(401).send({ error: 'Token is missing or invalid' });
     const event = await requireActiveEvent(request, reply, options.db);
     if (!event) return;

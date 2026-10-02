@@ -16,11 +16,50 @@ function imageMimeType(filePath: string) {
 
 export function normalizeSpreadsheetRow(row: Record<string, unknown>) {
   const normalized = Object.fromEntries(Object.entries(row).map(([key, value]) => [key.toLowerCase().trim(), value]));
-  return { name: String(normalized.nome ?? normalized.name ?? '').trim(), phone: String(normalized.telefone ?? normalized.phone ?? '').trim() };
+  return {
+    name: String(normalized.nome ?? normalized.name ?? '').trim(),
+    phone: String(normalized.telefone ?? normalized.phone ?? '').trim(),
+    groupName: String(normalized.grupo ?? normalized.group ?? '').trim(),
+  };
 }
 
-export function workbookFromGuests(guests: Array<{ name: string; phone: string }>) {
-  const worksheet = XLSX.utils.json_to_sheet(guests.map((guest) => ({ Nome: guest.name, Telefone: guest.phone })));
+function normalizeGroupName(name: string) {
+  return name.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+export function findGroupIdByName(name: string, groups: Array<{ id: number; name: string }>) {
+  const normalizedName = normalizeGroupName(name);
+  if (!normalizedName) return null;
+  const matches = groups.filter((group) => normalizeGroupName(group.name) === normalizedName);
+  return matches.length === 1 ? matches[0].id : null;
+}
+
+function invitationStatusLabel(status: string | null | undefined) {
+  if (status === 'sent') return 'Enviado';
+  if (status === 'failed') return 'Falhou';
+  return 'Pendente';
+}
+
+function rsvpStatusLabel(status: string | null | undefined) {
+  if (status === 'confirmed') return 'Confirmado';
+  if (status === 'declined') return 'Não comparece';
+  return 'Aguardando';
+}
+
+export function workbookFromGuests(guests: Array<{
+  name: string;
+  phone: string;
+  groupName?: string | null;
+  status?: string | null;
+  rsvpStatus?: string | null;
+}>) {
+  const worksheet = XLSX.utils.json_to_sheet(guests.map((guest) => ({
+    Nome: guest.name,
+    Telefone: guest.phone,
+    Grupo: guest.groupName ?? '',
+    'Status do convite': invitationStatusLabel(guest.status),
+    Resposta: rsvpStatusLabel(guest.rsvpStatus),
+  })));
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Convidados');
   return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
@@ -66,6 +105,7 @@ export async function registerUploadRoutes(app: FastifyInstance, options: Option
     if (!file || !/\.(xlsx|xls)$/i.test(file.filename)) return reply.code(400).send({ error: 'An .xlsx or .xls file is required' });
     const workbook = XLSX.read(await file.toBuffer(), { type: 'buffer' });
     const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[workbook.SheetNames[0]] ?? {});
+    const groups = await options.db.group.findMany({ where: { eventId: event.id }, select: { id: true, name: true } });
     let imported = 0;
     let skipped = 0;
     for (const row of rows) {
@@ -73,7 +113,8 @@ export async function registerUploadRoutes(app: FastifyInstance, options: Option
       if (!guest.name || !guest.phone) { skipped++; continue; }
       const existing = await options.db.guest.findFirst({ where: { phone: guest.phone, eventId: event.id } });
       if (existing) { skipped++; continue; }
-      await options.db.guest.create({ data: { ...guest, eventId: event.id } });
+      const groupId = findGroupIdByName(guest.groupName, groups);
+      await options.db.guest.create({ data: { name: guest.name, phone: guest.phone, eventId: event.id, groupId } });
       imported++;
     }
     return { message: `Imported ${imported} guests`, imported, skipped };
@@ -83,7 +124,14 @@ export async function registerUploadRoutes(app: FastifyInstance, options: Option
     if (!await authenticateRequest(request, options.jwtSecret)) return reply.code(401).send({ error: 'Token is missing or invalid' });
     const event = await requireActiveEvent(request, reply, options.db);
     if (!event) return;
-    const guests = await options.db.guest.findMany({ where: { eventId: event.id }, orderBy: { name: 'asc' } });
-    return reply.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet').header('Content-Disposition', 'attachment; filename="convidados.xlsx"').send(workbookFromGuests(guests));
+    const guests = await options.db.guest.findMany({ where: { eventId: event.id }, include: { group: true }, orderBy: { name: 'asc' } });
+    const exportRows = guests.map((guest) => ({
+      name: guest.name,
+      phone: guest.phone,
+      groupName: guest.group?.name ?? null,
+      status: guest.status,
+      rsvpStatus: guest.rsvpStatus,
+    }));
+    return reply.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet').header('Content-Disposition', 'attachment; filename="convidados.xlsx"').send(workbookFromGuests(exportRows));
   });
 }

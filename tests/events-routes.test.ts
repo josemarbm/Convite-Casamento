@@ -23,6 +23,13 @@ function createDb() {
       findUnique: vi.fn().mockResolvedValue(event),
       update: vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({ ...event, ...data })),
     },
+    guest: {
+      groupBy: vi.fn().mockResolvedValue([
+        { eventId: 8, rsvpStatus: 'confirmed', _count: { _all: 4 } },
+        { eventId: 8, rsvpStatus: 'pending', _count: { _all: 3 } },
+        { eventId: 8, rsvpStatus: 'declined', _count: { _all: 1 } },
+      ]),
+    },
     messageTemplate: { create: vi.fn().mockResolvedValue({ id: 14 }) },
     scheduledSend: {
       findMany: vi.fn().mockResolvedValue([{ id: 21 }]),
@@ -39,6 +46,23 @@ async function adminHeaders() {
 }
 
 describe('event routes', () => {
+  it('returns RSVP counts with each active event', async () => {
+    const db = createDb();
+    const app = buildApp({ db: db as never, jwtSecret: 'test-secret' });
+    const response = await app.inject({ method: 'GET', url: '/api/events', headers: await adminHeaders() });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()[0]).toMatchObject({
+      id: 8,
+      guest_count: 8,
+      confirmed_count: 4,
+      pending_rsvp_count: 3,
+      declined_count: 1,
+    });
+    expect(db.guest.groupBy).toHaveBeenCalledWith(expect.objectContaining({ by: ['eventId', 'rsvpStatus'] }));
+    await app.close();
+  });
+
   it('creates a typed event and its default message preset', async () => {
     const db = createDb();
     const app = buildApp({ db: db as never, jwtSecret: 'test-secret' });
