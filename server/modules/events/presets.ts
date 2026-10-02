@@ -11,10 +11,15 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
 };
 
 const presets: Record<EventType, { name: string; content: string }> = {
+  // wedding: {
+  //   name: 'Convite de casamento',
+  //   content: 'Olá, {nome}! Você está convidado(a) para o casamento {event_name}.\n\n{event_date_time}\n{event_location}\n{event_address}\n\nConfirme sua presença: {rsvp_url}\n\nCom carinho,\n{hosts}',
+  // },
   wedding: {
     name: 'Convite de casamento',
-    content: 'Olá, {nome}! Você está convidado(a) para o casamento {event_name}.\n\n{event_date_time}\n{event_location}\n{event_address}\n\nConfirme sua presença: {rsvp_url}\n\nCom carinho,\n{hosts}',
+    content: 'Querido(a) {nome},\n\n📣 CHEGOU O GRANDE MOMENTO!! 🚨\nÉ com muito carinho que enviamos o convite do nosso casamento! 💐 ❤️\nSua presença tornará nosso dia ainda mais especial.\n\n🗓️ Salve a Data {event_date_time}\n\n👉 Confirmar presença:\n{rsvp_url}\n\n🎁 Lista de presentes:\n{gift_list_url}\n\n🌐 Site do casamento:\n{wedding_website_url}\n\n💒Local:\n{event_location}\n{event_address}\n\nCom carinho,\n{hosts} 💍💍',
   },
+
   birthday: {
     name: 'Convite de aniversário',
     content: 'Oi, {nome}! Vamos comemorar o aniversário de {hosts} e queremos você com a gente!\n\n{event_name}\n{event_date_time}\n{event_location}\n{event_address}\n\nConfirme sua presença: {rsvp_url}',
