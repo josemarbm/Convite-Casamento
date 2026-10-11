@@ -29,6 +29,16 @@ function createDb() {
         { eventId: 8, rsvpStatus: 'pending', _count: { _all: 3 } },
         { eventId: 8, rsvpStatus: 'declined', _count: { _all: 1 } },
       ]),
+      findMany: vi.fn().mockResolvedValue([
+        { id: 10, eventId: 8 },
+        { id: 11, eventId: 8 },
+      ]),
+    },
+    guestCompanion: {
+      groupBy: vi.fn().mockResolvedValue([
+        { guestId: 10, _count: { _all: 1 } },
+        { guestId: 11, _count: { _all: 2 } },
+      ]),
     },
     messageTemplate: { create: vi.fn().mockResolvedValue({ id: 14 }) },
     scheduledSend: {

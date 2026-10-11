@@ -42,24 +42,37 @@ model Event {
 }
 
 model Guest {
-  id               Int       @id @default(autoincrement())
-  eventId          Int?      @map("event_id")
-  name             String    @db.VarChar(200)
-  phone            String    @db.VarChar(50)
-  groupId          Int?      @map("group_id")
-  status           String?   @default("pending") @db.VarChar(20)
-  sentAt           DateTime? @map("sent_at")
-  rsvpTokenHash    String?   @unique @map("rsvp_token_hash") @db.VarChar(64)
-  rsvpStatus       String    @default("pending") @map("rsvp_status") @db.VarChar(20)
-  rsvpRespondedAt  DateTime? @map("rsvp_responded_at")
-  createdAt        DateTime  @default(now()) @map("created_at")
+  id              Int       @id @default(autoincrement())
+  eventId         Int?      @map("event_id")
+  name            String    @db.VarChar(200)
+  phone           String    @db.VarChar(50)
+  groupId         Int?      @map("group_id")
+  companionLimit  Int       @default(0) @map("companion_limit")
+  status          String?   @default("pending") @db.VarChar(20)
+  sentAt          DateTime? @map("sent_at")
+  rsvpTokenHash   String?   @unique @map("rsvp_token_hash") @db.VarChar(64)
+  rsvpStatus      String    @default("pending") @map("rsvp_status") @db.VarChar(20)
+  rsvpRespondedAt DateTime? @map("rsvp_responded_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
 
-  event Event? @relation(fields: [eventId], references: [id])
-  group Group? @relation(fields: [groupId], references: [id])
+  event      Event?           @relation(fields: [eventId], references: [id])
+  group      Group?           @relation(fields: [groupId], references: [id])
+  companions GuestCompanion[]
 
   @@index([eventId])
   @@index([groupId])
   @@map("guests")
+}
+
+model GuestCompanion {
+  id      Int    @id @default(autoincrement())
+  guestId Int    @map("guest_id")
+  name    String @db.VarChar(200)
+
+  guest Guest @relation(fields: [guestId], references: [id], onDelete: Cascade)
+
+  @@index([guestId])
+  @@map("guest_companions")
 }
 
 model MessageTemplate {

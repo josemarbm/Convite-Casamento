@@ -6,9 +6,10 @@ import * as XLSX from 'xlsx';
 
 describe('upload helpers', () => {
   it('normalizes Portuguese and English spreadsheet headers', () => {
-    expect(normalizeSpreadsheetRow({ Nome: ' Maria ', Telefone: '(11) 99999-9999', Grupo: ' Família ' })).toEqual({ name: 'Maria', phone: '(11) 99999-9999', groupName: 'Família' });
-    expect(normalizeSpreadsheetRow({ NAME: 'John', PHONE: '4155551212', GROUP: ' Friends ' })).toEqual({ name: 'John', phone: '4155551212', groupName: 'Friends' });
-    expect(normalizeSpreadsheetRow({ Nome: 'Ana', Telefone: '5511' })).toEqual({ name: 'Ana', phone: '5511', groupName: '' });
+    expect(normalizeSpreadsheetRow({ Nome: ' Maria ', Telefone: '(11) 99999-9999', Grupo: ' Família ' })).toEqual({ name: 'Maria', phone: '(11) 99999-9999', groupName: 'Família', companionLimit: 0, companions: [] });
+    expect(normalizeSpreadsheetRow({ NAME: 'John', PHONE: '4155551212', GROUP: ' Friends ' })).toEqual({ name: 'John', phone: '4155551212', groupName: 'Friends', companionLimit: 0, companions: [] });
+    expect(normalizeSpreadsheetRow({ Nome: 'Ana', Telefone: '5511' })).toEqual({ name: 'Ana', phone: '5511', groupName: '', companionLimit: 0, companions: [] });
+    expect(normalizeSpreadsheetRow({ 'Limite de acompanhantes': '2', Acompanhantes: ' Maria ; João ', Nome: 'Ana', Telefone: '5511' })).toEqual({ name: 'Ana', phone: '5511', groupName: '', companionLimit: 2, companions: ['Maria', 'João'] });
   });
 
   it('matches existing group names without case, accent, or whitespace differences', () => {
@@ -20,22 +21,24 @@ describe('upload helpers', () => {
     expect(findGroupIdByName('família', [...groups, { id: 6, name: 'Familia' }])).toBeNull();
   });
 
-  it('exports group, invitation status, and RSVP response columns', () => {
+  it('exports group, invitation status, RSVP response, companion limit, and companions', () => {
     const workbook = XLSX.read(workbookFromGuests([{
       name: 'Maria',
       phone: '5511',
       groupName: 'Família',
       status: 'sent',
       rsvpStatus: 'confirmed',
+      companionLimit: 2,
+      companions: ['João', 'Ana'],
     }]), { type: 'buffer' });
     const rows = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets.Convidados, { header: 1 });
-    expect(rows[0]).toEqual(['Nome', 'Telefone', 'Grupo', 'Status do convite', 'Resposta']);
-    expect(rows[1]).toEqual(['Maria', '5511', 'Família', 'Enviado', 'Confirmado']);
+    expect(rows[0]).toEqual(['Nome', 'Telefone', 'Grupo', 'Status do convite', 'Resposta', 'Limite de acompanhantes', 'Acompanhantes']);
+    expect(rows[1]).toEqual(['Maria', '5511', 'Família', 'Enviado', 'Confirmado', 2, 'João; Ana']);
   });
 
-  it('skips guests whose phone number is already present in the event', async () => {
+  it('skips guests whose phone number is already present in the event and preserves valid companion rows', async () => {
     const event = { id: 8, name: 'Festa', eventType: 'birthday', customType: null, hosts: null, dateTime: null, location: null, address: null, imagePath: null, archivedAt: null };
-    const createdGuests: Array<{ name: string; phone: string; eventId: number; groupId: number | null }> = [];
+    const createdGuests: Array<{ name: string; phone: string; eventId: number; groupId: number | null; companionLimit?: number }> = [];
     const db = {
       event: { findUnique: vi.fn().mockResolvedValue(event) },
       group: {
@@ -44,15 +47,19 @@ describe('upload helpers', () => {
       },
       guest: {
         findFirst: vi.fn().mockImplementation(async ({ where }: { where: { name?: string; phone: string; eventId: number } }) => createdGuests.find((guest) => (!where.name || guest.name === where.name) && guest.phone === where.phone && guest.eventId === where.eventId) ?? null),
-        create: vi.fn().mockImplementation(async ({ data }: { data: typeof createdGuests[number] }) => { createdGuests.push(data); return {}; }),
+        create: vi.fn().mockImplementation(async ({ data }: { data: typeof createdGuests[number] }) => { createdGuests.push(data); return { id: createdGuests.length, ...data }; }),
+      },
+      guestCompanion: {
+        createMany: vi.fn().mockResolvedValue({ count: 0 }),
       },
     };
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet([
-      { Nome: 'Maria', Telefone: '5511', Grupo: ' familia ' },
-      { Nome: 'João', Telefone: '5511', Grupo: 'Visitantes' },
-      { Nome: 'Ana', Telefone: '5533' },
-      { Nome: 'Maria', Telefone: '5511', Grupo: 'Família' },
+      { Nome: 'Maria', Telefone: '5511', Grupo: ' familia ', 'Limite de acompanhantes': 2, Acompanhantes: 'João; Ana' },
+      { Nome: 'João', Telefone: '5511', Grupo: 'Visitantes', 'Limite de acompanhantes': 1 },
+      { Nome: 'Ana', Telefone: '5533', 'Limite de acompanhantes': 3, Acompanhantes: 'Léo; Bia' },
+      { Nome: 'Maria', Telefone: '5511', Grupo: 'Família', 'Limite de acompanhantes': 2 },
+      { Nome: 'Rui', Telefone: '5544', 'Limite de acompanhantes': 2, Acompanhantes: 'Leandro; Maria' },
     ]), 'Convidados');
     const file = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
     const boundary = 'guest-import-test-boundary';
@@ -75,11 +82,12 @@ describe('upload helpers', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toMatchObject({ imported: 2, skipped: 2 });
+    expect(response.json()).toMatchObject({ imported: 3, skipped: 2 });
     expect(db.group.findMany).toHaveBeenCalledWith({ where: { eventId: 8 }, select: { id: true, name: true } });
-    expect(db.guest.create).toHaveBeenNthCalledWith(1, { data: { name: 'Maria', phone: '5511', eventId: 8, groupId: 4 } });
-    expect(db.guest.create).toHaveBeenNthCalledWith(2, { data: { name: 'Ana', phone: '5533', eventId: 8, groupId: null } });
-    expect(db.guest.findFirst).toHaveBeenCalledWith({ where: { phone: '5511', eventId: 8 } });
+    expect(db.guest.create).toHaveBeenNthCalledWith(1, { data: { name: 'Maria', phone: '5511', eventId: 8, groupId: 4, companionLimit: 2, companions: { create: [{ name: 'João' }, { name: 'Ana' }] } } });
+    expect(db.guest.create).toHaveBeenNthCalledWith(2, { data: { name: 'Ana', phone: '5533', eventId: 8, groupId: null, companionLimit: 3, companions: { create: [{ name: 'Léo' }, { name: 'Bia' }] } } });
+    expect(db.guest.create).toHaveBeenNthCalledWith(3, { data: { name: 'Rui', phone: '5544', eventId: 8, groupId: null, companionLimit: 2, companions: { create: [{ name: 'Leandro' }, { name: 'Maria' }] } } });
+    expect(db.guestCompanion.createMany).toHaveBeenCalledTimes(3);
     expect(db.group.create).not.toHaveBeenCalled();
     await app.close();
   });

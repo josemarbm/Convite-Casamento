@@ -14,12 +14,47 @@ function imageMimeType(filePath: string) {
   return ({ '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp' } as Record<string, string>)[extension] ?? 'application/octet-stream';
 }
 
+function parseCompanionLimit(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return Math.trunc(value);
+  if (typeof value === 'string') {
+    const parsed = Number(value.trim());
+    if (Number.isFinite(parsed)) return Math.trunc(parsed);
+  }
+  return 0;
+}
+
+function parseCompanions(value: unknown): string[] {
+  if (typeof value === 'string') {
+    return value.split(/[;,]/).map((name) => name.trim()).filter(Boolean);
+  }
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
 export function normalizeSpreadsheetRow(row: Record<string, unknown>) {
   const normalized = Object.fromEntries(Object.entries(row).map(([key, value]) => [key.toLowerCase().trim(), value]));
+  const companionLimitValue =
+    normalized['limite de acompanhantes']
+    ?? normalized['companion limit']
+    ?? normalized['companion_limit']
+    ?? normalized['limite_acompanhantes']
+    ?? 0;
+  const companionNamesValue =
+    normalized.acompanhantes
+    ?? normalized.companions
+    ?? normalized['companions[]']
+    ?? '';
   return {
     name: String(normalized.nome ?? normalized.name ?? '').trim(),
     phone: String(normalized.telefone ?? normalized.phone ?? '').trim(),
     groupName: String(normalized.grupo ?? normalized.group ?? '').trim(),
+    companionLimit: Number.isInteger(parseCompanionLimit(companionLimitValue)) && parseCompanionLimit(companionLimitValue) >= 0 ? parseCompanionLimit(companionLimitValue) : 0,
+    companions: parseCompanions(companionNamesValue),
   };
 }
 
@@ -52,6 +87,8 @@ export function workbookFromGuests(guests: Array<{
   groupName?: string | null;
   status?: string | null;
   rsvpStatus?: string | null;
+  companionLimit?: number | null;
+  companions?: string[] | null;
 }>) {
   const worksheet = XLSX.utils.json_to_sheet(guests.map((guest) => ({
     Nome: guest.name,
@@ -59,6 +96,8 @@ export function workbookFromGuests(guests: Array<{
     Grupo: guest.groupName ?? '',
     'Status do convite': invitationStatusLabel(guest.status),
     Resposta: rsvpStatusLabel(guest.rsvpStatus),
+    'Limite de acompanhantes': guest.companionLimit ?? 0,
+    Acompanhantes: (guest.companions ?? []).join('; '),
   })));
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Convidados');
@@ -111,10 +150,25 @@ export async function registerUploadRoutes(app: FastifyInstance, options: Option
     for (const row of rows) {
       const guest = normalizeSpreadsheetRow(row);
       if (!guest.name || !guest.phone) { skipped++; continue; }
+      const companionLimit = Number.isInteger(guest.companionLimit) && guest.companionLimit >= 0 ? guest.companionLimit : null;
+      const companions = guest.companions.map((name) => name.trim()).filter((name) => name.length > 0 && name.length <= 200);
+      if (companions.length > (companionLimit ?? 0) || (companionLimit !== null && companionLimit < 0)) { skipped++; continue; }
       const existing = await options.db.guest.findFirst({ where: { phone: guest.phone, eventId: event.id } });
       if (existing) { skipped++; continue; }
       const groupId = findGroupIdByName(guest.groupName, groups);
-      await options.db.guest.create({ data: { name: guest.name, phone: guest.phone, eventId: event.id, groupId } });
+      const createdGuest = await options.db.guest.create({
+        data: {
+          name: guest.name,
+          phone: guest.phone,
+          eventId: event.id,
+          groupId,
+          ...(companionLimit !== null ? { companionLimit } : {}),
+          ...(companions.length ? { companions: { create: companions.map((name) => ({ name })) } } : {}),
+        },
+      });
+      if (companions.length > 0) {
+        await options.db.guestCompanion.createMany({ data: companions.map((name) => ({ guestId: createdGuest.id, name })) });
+      }
       imported++;
     }
     return { message: `Imported ${imported} guests`, imported, skipped };
@@ -124,13 +178,15 @@ export async function registerUploadRoutes(app: FastifyInstance, options: Option
     if (!await authenticateRequest(request, options.jwtSecret)) return reply.code(401).send({ error: 'Token is missing or invalid' });
     const event = await requireActiveEvent(request, reply, options.db);
     if (!event) return;
-    const guests = await options.db.guest.findMany({ where: { eventId: event.id }, include: { group: true }, orderBy: { name: 'asc' } });
+    const guests = await options.db.guest.findMany({ where: { eventId: event.id }, include: { group: true, companions: { orderBy: { id: 'asc' } } }, orderBy: { name: 'asc' } });
     const exportRows = guests.map((guest) => ({
       name: guest.name,
       phone: guest.phone,
       groupName: guest.group?.name ?? null,
       status: guest.status,
       rsvpStatus: guest.rsvpStatus,
+      companionLimit: guest.companionLimit,
+      companions: guest.companions.map((companion) => companion.name),
     }));
     return reply.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet').header('Content-Disposition', 'attachment; filename="convidados.xlsx"').send(workbookFromGuests(exportRows));
   });

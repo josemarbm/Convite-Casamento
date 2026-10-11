@@ -19,7 +19,7 @@ function formatEventDate(value: string | null) {
 export default function EventOverview({ events, activeEventId, loading, error, onOpenEvent, onCreateEvent, onRetry }: Props) {
   const totals = events.reduce((summary, event) => ({
     guests: summary.guests + (event.guest_count ?? 0),
-    confirmed: summary.confirmed + (event.confirmed_count ?? 0),
+    confirmed: summary.confirmed + (event.confirmed_attendee_count ?? event.confirmed_count ?? 0),
     pending: summary.pending + (event.pending_rsvp_count ?? 0),
   }), { guests: 0, confirmed: 0, pending: 0 });
 
@@ -41,7 +41,7 @@ export default function EventOverview({ events, activeEventId, loading, error, o
         <div className="event-overview-identity"><div className="event-overview-title"><h3>{event.name}</h3>{event.id === activeEventId && <span className="status-pill rsvp-confirmed">Selecionado</span>}</div><p>{[event.event_type_label, event.hosts, formatEventDate(event.date_time), event.location].filter(Boolean).join(' · ')}</p></div>
         <div className="event-overview-counts" aria-label={`RSVP de ${event.name}`}>
           <span><strong>{event.guest_count ?? 0}</strong> convidados</span>
-          <span><strong>{event.confirmed_count ?? 0}</strong> confirmados</span>
+          <span><strong>{event.confirmed_attendee_count ?? event.confirmed_count ?? 0}</strong> confirmados</span>
           <span><strong>{event.pending_rsvp_count ?? 0}</strong> aguardando</span>
           <span><strong>{event.declined_count ?? 0}</strong> recusaram</span>
         </div>
