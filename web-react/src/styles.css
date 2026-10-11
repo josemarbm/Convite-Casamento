@@ -168,6 +168,35 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(169, 94, 77,
 .management-form input, .template-form input { height: 44px; }
 .template-form { display: grid; gap: 14px; max-width: 720px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
 .template-form textarea { min-height: 120px; padding-top: 12px; resize: vertical; }
+.template-builder { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(300px, .92fr); gap: 22px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
+.template-form-editor { max-width: none; padding-bottom: 0; border-bottom: 0; }
+.template-message-field { display: grid; gap: 7px; }
+.template-field-label { color: var(--muted-ink); font-size: .69rem; font-weight: 700; }
+.template-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; padding: 7px; border: 1px solid var(--line); border-bottom: 0; border-radius: 8px 8px 0 0; background: #faf7f3; }
+.template-toolbar > button { display: grid; place-items: center; width: 30px; height: 28px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--ink); cursor: pointer; }
+.template-toolbar > button:hover { border-color: var(--line); background: #fff; color: var(--terracotta); }
+.template-toolbar-divider { width: 1px; height: 22px; margin: 0 4px; background: var(--line); }
+.template-field-select { height: 28px; padding: 0 7px; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: var(--muted-ink); cursor: pointer; font-size: .68rem; font-weight: 700; }
+.template-field-picker { position: relative; display: inline-flex; align-items: center; }
+.template-field-picker > span { padding: 7px 9px; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: var(--muted-ink); cursor: default; font-size: .68rem; font-weight: 700; }
+.template-field-picker > button { display: none; position: absolute; z-index: 2; top: calc(100% + 4px); left: 0; width: 180px; padding: 8px 10px; border: 0; border-bottom: 1px solid var(--line); background: var(--paper); color: var(--ink); cursor: pointer; text-align: left; font-size: .7rem; }
+.template-field-picker:hover > button, .template-field-picker:focus-within > button { display: block; }
+.template-field-picker > button:hover { background: #fff4ee; color: var(--terracotta); }
+.template-message-field textarea { border-radius: 0 0 8px 8px; }
+.template-form-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.template-form-actions .primary-button { width: auto; margin-top: 0; }
+.template-preview-column { min-width: 0; }
+.template-preview-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; color: var(--muted-ink); font-size: .7rem; font-weight: 700; }
+.template-preview-label { color: var(--terracotta); letter-spacing: .12em; text-transform: uppercase; }
+.whatsapp-preview { overflow: hidden; border: 1px solid #d7d1c8; border-radius: 12px; background: #efe8df; box-shadow: 0 8px 20px rgba(56,39,37,.06); }
+.whatsapp-preview-header { display: flex; align-items: center; gap: 9px; padding: 10px 13px; background: #075e54; color: #fff; }
+.whatsapp-preview-header strong, .whatsapp-preview-header small { display: block; }
+.whatsapp-preview-header strong { font-size: .76rem; }.whatsapp-preview-header small { margin-top: 2px; color: #d6f1eb; font-size: .62rem; }
+.whatsapp-avatar { display: grid; place-items: center; width: 29px; height: 29px; border-radius: 50%; background: #d9e9e2; color: #075e54; font-size: .85rem; }
+.whatsapp-preview-body { min-height: 252px; padding: 22px 14px; background: radial-gradient(circle at 20% 10%, rgba(255,255,255,.4), transparent 35%), #efe8df; }
+.whatsapp-bubble { width: fit-content; max-width: 92%; padding: 9px 10px 5px; border-radius: 3px 10px 10px 10px; background: #fff; color: #302c28; font: .78rem/1.45 Arial, sans-serif; white-space: normal; overflow-wrap: anywhere; box-shadow: 0 1px 1px rgba(0,0,0,.08); }
+.whatsapp-bubble code { padding: 1px 3px; border-radius: 3px; background: #f1eee9; font-family: monospace; }.template-preview-field { color: #176b5c; }.template-preview-placeholder { color: #988f86; font-style: italic; }
+.whatsapp-time { display: block; margin: 4px 4px 0 0; color: #8a8279; font: .6rem Arial, sans-serif; text-align: right; }
 .management-form input:focus, .template-form input:focus, .template-form textarea:focus { border-color: var(--terracotta); box-shadow: 0 0 0 4px rgba(169,94,77,.09); outline: 0; }
 .checkbox-field { display: flex !important; grid-template-columns: none; align-items: center; gap: 8px !important; width: fit-content; }
 .checkbox-field input { width: 16px; height: 16px; accent-color: var(--terracotta); }
@@ -244,3 +273,4 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(169, 94, 77,
 .schedule-cancelled, .schedule-failed { background: #fae7e3; color: #9a443a; }
 @media (max-width: 700px) { .schedule-form { grid-template-columns: 1fr; } .schedule-form .primary-button { width: 100%; } .schedule-row { align-items: start; flex-direction: column; } .schedule-row-actions { width: 100%; justify-content: space-between; } }
 @media (max-width: 700px) { .management-form { grid-template-columns: 1fr; } .management-form .primary-button { width: 100%; } .management-row, .template-row { align-items: start; flex-direction: column; } .management-row .text-action, .template-row .text-action { align-self: flex-end; } }
+@media (max-width: 700px) { .template-builder { grid-template-columns: 1fr; gap: 24px; } .template-form-actions { align-items: stretch; flex-direction: column; } .template-form-actions .primary-button, .template-form-actions .secondary-button { width: 100%; } .template-form-actions .text-action { align-self: center; } .template-preview-column { order: -1; } .whatsapp-preview-body { min-height: 190px; } }
