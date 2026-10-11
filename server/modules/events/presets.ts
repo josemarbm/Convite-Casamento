@@ -17,7 +17,7 @@ const presets: Record<EventType, { name: string; content: string }> = {
   // },
   wedding: {
     name: 'Convite de casamento',
-    content: 'Querido(a) {nome},\n\n📣 CHEGOU O GRANDE MOMENTO!! 🚨\nÉ com muito carinho que enviamos o convite do nosso casamento! 💐 ❤️\nSua presença tornará nosso dia ainda mais especial.\n\n🗓️ Salve a Data {event_date_time}\n\n👉 Confirmar presença:\n{rsvp_url}\n\n🎁 Lista de presentes:\n{gift_list_url}\n\n🌐 Site do casamento:\n{wedding_website_url}\n\n💒Local:\n{event_location}\n{event_address}\n\nCom carinho,\n{hosts} 💍💍',
+    content: 'Casamento {event_name}.\n\n Querido(a) {nome},\n\n📣 CHEGOU O GRANDE MOMENTO!! 🚨\nÉ com muito carinho que enviamos o convite do nosso casamento! 💐 ❤️\nSua presença tornará nosso dia ainda mais especial.\n\n🗓️ Salve a Data {event_date_time}\n\n👉 Confirmar presença:\n{rsvp_url}\n\n🎁 Lista de presentes:\n{gift_list_url}\n\n🌐 Site do casamento:\n{wedding_website_url}\n\n💒Local:\n{event_location}\n{event_address}\n\nCom carinho,\n{hosts} 💍💍',
   },
 
   birthday: {
