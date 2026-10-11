@@ -9,9 +9,10 @@ import ScheduleManagement from '../components/ScheduleManagement';
 import TemplateManagement from '../components/TemplateManagement';
 import EventManagement from '../components/EventManagement';
 import EventOverview from '../components/EventOverview';
+import CompanionEditor from '../components/CompanionEditor';
 import { useEvents } from '../events/EventProvider';
 
-type Guest = { id: number; name: string; phone: string; group_id: number | null; group_name: string | null; status: string; rsvp_status: string };
+type Guest = { id: number; name: string; phone: string; group_id: number | null; group_name: string | null; companion_limit?: number; companions?: string[]; status: string; rsvp_status: string };
 type GuestPage = { guests: Guest[]; total: number; pages: number };
 type GuestGroup = { id: number; name: string; description: string | null; guest_count: number; created_at: string };
 
@@ -27,6 +28,8 @@ export default function DashboardPage() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [groupId, setGroupId] = useState('');
+  const [companionLimit, setCompanionLimit] = useState('0');
+  const [companions, setCompanions] = useState<string[]>([]);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
   const [workingGuestId, setWorkingGuestId] = useState<number | null>(null);
   const [resendingGuestId, setResendingGuestId] = useState<number | null>(null);
@@ -75,8 +78,17 @@ export default function DashboardPage() {
   }
 
   async function addGuest() {
+    const parsedLimit = Number(companionLimit);
+    if (!Number.isInteger(parsedLimit) || parsedLimit < 0) {
+      setError('O limite de acompanhantes deve ser um número inteiro maior ou igual a zero.');
+      return;
+    }
+    const trimmedCompanions = companions.map((companion) => companion.trim()).filter(Boolean);
     try {
-      await apiRequest('/guests', { method: 'POST', body: JSON.stringify({ name, phone, group_id: groupId ? Number(groupId) : null }) });
+      await apiRequest('/guests', {
+        method: 'POST',
+        body: JSON.stringify({ name, phone, group_id: groupId ? Number(groupId) : null, companion_limit: parsedLimit, companions: trimmedCompanions }),
+      });
       resetGuestForm();
       setNotice('Convidado adicionado.');
       await loadGuests();
@@ -87,6 +99,8 @@ export default function DashboardPage() {
     setName('');
     setPhone('');
     setGroupId('');
+    setCompanionLimit('0');
+    setCompanions([]);
     setEditingGuest(null);
   }
 
@@ -95,6 +109,8 @@ export default function DashboardPage() {
     setName(guest.name);
     setPhone(guest.phone);
     setGroupId(guest.group_id ? String(guest.group_id) : '');
+    setCompanionLimit(String(guest.companion_limit ?? 0));
+    setCompanions(Array.isArray(guest.companions) ? guest.companions : []);
     setNotice('');
     setError('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -102,9 +118,23 @@ export default function DashboardPage() {
 
   async function updateGuest() {
     if (!editingGuest) return;
+    const parsedLimit = Number(companionLimit);
+    if (!Number.isInteger(parsedLimit) || parsedLimit < 0) {
+      setError('O limite de acompanhantes deve ser um número inteiro maior ou igual a zero.');
+      return;
+    }
     setWorkingGuestId(editingGuest.id);
     try {
-      await apiRequest(`/guests/${editingGuest.id}`, { method: 'PUT', body: JSON.stringify({ name, phone, group_id: groupId ? Number(groupId) : null }) });
+      await apiRequest(`/guests/${editingGuest.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          name,
+          phone,
+          group_id: groupId ? Number(groupId) : null,
+          companion_limit: parsedLimit,
+          companions: companions.map((companion) => companion.trim()).filter(Boolean),
+        }),
+      });
       resetGuestForm();
       setNotice('Convidado atualizado.');
       await loadGuests();
@@ -190,7 +220,7 @@ export default function DashboardPage() {
     return <>
       <section className="workspace-panel quick-add-panel">
         <div className="panel-heading"><div><span className="section-label">Próxima ação</span><h2>Adicionar convidado</h2><p>Inclua alguém na lista e organize o grupo depois.</p></div><button className="text-action" type="button" onClick={() => setActiveSection('groups')}>Gerenciar grupos</button></div>
-        <div className="inline-form modern-form"><label><span>Nome completo</span><input aria-label="Nome" placeholder="Ex.: Maria da Silva" value={name} onChange={(event) => setName(event.target.value)} /></label><label><span>Telefone</span><input aria-label="Telefone" placeholder="(11) 99999-9999" value={phone} onChange={(event) => setPhone(event.target.value)} /></label><label><span>Grupo</span><select aria-label="Grupo" value={groupId} onChange={(event) => setGroupId(event.target.value)}><option value="">Sem grupo</option>{groups.map((group) => <option value={group.id} key={group.id}>{group.name}</option>)}</select></label><div className="guest-form-actions"><button className="primary-button" disabled={!name.trim() || !phone.trim() || workingGuestId !== null} onClick={editingGuest ? updateGuest : addGuest}>{editingGuest ? 'Salvar alterações' : 'Adicionar convidado'}</button>{editingGuest && <button className="secondary-button" type="button" onClick={resetGuestForm}>Cancelar</button>}</div></div>
+        <div className="inline-form modern-form"><label><span>Nome completo</span><input aria-label="Nome" placeholder="Ex.: Maria da Silva" value={name} onChange={(event) => setName(event.target.value)} /></label><label><span>Telefone</span><input aria-label="Telefone" placeholder="(11) 99999-9999" value={phone} onChange={(event) => setPhone(event.target.value)} /></label><label><span>Grupo</span><select aria-label="Grupo" value={groupId} onChange={(event) => setGroupId(event.target.value)}><option value="">Sem grupo</option>{groups.map((group) => <option value={group.id} key={group.id}>{group.name}</option>)}</select></label><label><span>Limite de acompanhantes</span><input aria-label="Limite de acompanhantes" type="number" min="0" step="1" value={companionLimit} onChange={(event) => { const nextValue = event.target.value; setCompanionLimit(nextValue); if (Number(nextValue) < companions.length) setCompanions((current) => current.slice(0, Number(nextValue) || 0)); }} /></label>{Number(companionLimit) > 0 && <CompanionEditor limit={Number(companionLimit) || 0} names={companions} onChange={setCompanions} />}{editingGuest ? <div className="guest-form-actions"><button className="primary-button" disabled={!name.trim() || !phone.trim() || workingGuestId !== null} onClick={updateGuest}>Salvar alterações</button><button className="secondary-button" type="button" onClick={resetGuestForm}>Cancelar</button></div> : <div className="guest-form-actions"><button className="primary-button" disabled={!name.trim() || !phone.trim() || workingGuestId !== null} onClick={addGuest}>Adicionar convidado</button></div>}</div>
       </section>
 
       <section className="workspace-panel guest-workspace">

@@ -4,6 +4,7 @@ import { getRsvpToken } from '../web-react/src/App';
 import SettingsPanel from '../web-react/src/components/SettingsPanel';
 import EventOverview from '../web-react/src/components/EventOverview';
 import GuestList from '../web-react/src/components/GuestList';
+import CompanionEditor from '../web-react/src/components/CompanionEditor';
 import RsvpPage from '../web-react/src/pages/RsvpPage';
 
 describe('frontend smoke', () => {
@@ -81,6 +82,20 @@ describe('frontend smoke', () => {
     expect(html).toContain('Festa da Ana');
     expect(html).toContain('Abrir convidados');
     expect(html).not.toContain('Adicionar convidado');
+  });
+
+  it('renders the companion editor with the allowed count and empty state', () => {
+    const html = renderToString(
+      <CompanionEditor
+        limit={2}
+        names={['Maria']}
+        onChange={() => {}}
+      />,
+    );
+
+    expect(html).toContain('Acompanhantes');
+    expect(html).toContain('1 de 2');
+    expect(html).toContain('Maria');
   });
 
   it('renders the settings panel for the dashboard', () => {

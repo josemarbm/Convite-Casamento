@@ -73,20 +73,47 @@ export async function registerEventRoutes(app: FastifyInstance, options: Options
       where: { eventId: { in: events.map((event) => event.id) } },
       _count: { _all: true },
     });
-    const counts = new Map<number, { guest_count: number; confirmed_count: number; pending_rsvp_count: number; declined_count: number }>();
+    const counts = new Map<number, { guest_count: number; confirmed_count: number; confirmed_attendee_count: number; pending_rsvp_count: number; declined_count: number }>();
     for (const row of groupedGuests) {
       if (row.eventId === null) continue;
-      const summary = counts.get(row.eventId) ?? { guest_count: 0, confirmed_count: 0, pending_rsvp_count: 0, declined_count: 0 };
+      const summary = counts.get(row.eventId) ?? { guest_count: 0, confirmed_count: 0, confirmed_attendee_count: 0, pending_rsvp_count: 0, declined_count: 0 };
       const count = row._count._all;
       summary.guest_count += count;
-      if (row.rsvpStatus === 'confirmed') summary.confirmed_count += count;
+      if (row.rsvpStatus === 'confirmed') {
+        summary.confirmed_count += count;
+        summary.confirmed_attendee_count += count;
+      }
       if (row.rsvpStatus === 'pending') summary.pending_rsvp_count += count;
       if (row.rsvpStatus === 'declined') summary.declined_count += count;
       counts.set(row.eventId, summary);
     }
+    const confirmedGuestIds = new Map<number, number>();
+    const confirmedGuests = await options.db.guest.findMany({
+      where: { eventId: { in: events.map((event) => event.id) }, rsvpStatus: 'confirmed' },
+      select: { id: true, eventId: true },
+    });
+    for (const guest of confirmedGuests) {
+      if (guest.eventId === null) continue;
+      confirmedGuestIds.set(guest.id, guest.eventId);
+    }
+    const companionTable = (options.db as any)?.guestCompanion;
+    if (confirmedGuests.length && companionTable) {
+      const companionTotals = await companionTable.groupBy({
+        by: ['guestId'],
+        where: { guestId: { in: confirmedGuests.map((guest) => guest.id) } },
+        _count: { _all: true },
+      });
+      for (const row of companionTotals) {
+        const eventId = confirmedGuestIds.get(row.guestId);
+        if (eventId === undefined) continue;
+        const summary = counts.get(eventId) ?? { guest_count: 0, confirmed_count: 0, confirmed_attendee_count: 0, pending_rsvp_count: 0, declined_count: 0 };
+        summary.confirmed_attendee_count += row._count._all;
+        counts.set(eventId, summary);
+      }
+    }
     return events.map((event) => ({
       ...eventResponse(event),
-      ...(counts.get(event.id) ?? { guest_count: 0, confirmed_count: 0, pending_rsvp_count: 0, declined_count: 0 }),
+      ...(counts.get(event.id) ?? { guest_count: 0, confirmed_count: 0, confirmed_attendee_count: 0, pending_rsvp_count: 0, declined_count: 0 }),
     }));
   });
 

@@ -16,6 +16,7 @@ export type ManagedEvent = {
   created_at: string;
   guest_count?: number;
   confirmed_count?: number;
+  confirmed_attendee_count?: number;
   pending_rsvp_count?: number;
   declined_count?: number;
 };
