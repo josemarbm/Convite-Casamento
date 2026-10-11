@@ -4,6 +4,8 @@ type Guest = {
   phone: string;
   group_id: number | null;
   group_name: string | null;
+  companion_limit?: number;
+  companions?: string[];
   status: string;
   rsvp_status: string;
 };
@@ -57,7 +59,7 @@ export default function GuestList({ guests, loading, workingId, resendingId, sen
       </div>
       {guests.map((guest) => (
         <article className="guest-row" key={guest.id} role="row">
-          <div className="guest-identity"><span className="guest-avatar" aria-hidden="true">{guest.name.slice(0, 1).toUpperCase()}</span><span><strong>{guest.name}</strong><small>{guest.phone}</small></span></div>
+          <div className="guest-identity"><span className="guest-avatar" aria-hidden="true">{guest.name.slice(0, 1).toUpperCase()}</span><span><strong>{guest.name}</strong><small>{guest.phone}</small><em>{Array.isArray(guest.companions) ? guest.companions.length : 0} / {guest.companion_limit ?? 0} acompanhantes</em></span></div>
           <span className="guest-group">{guest.group_name ?? 'Sem grupo'}</span>
           <span><span className={`status-pill delivery-${guest.status}`}>{deliveryLabel(guest.status)}</span></span>
           <span><span className={`status-pill rsvp-${guest.rsvp_status}`}>{statusLabel(guest.rsvp_status)}</span></span>
