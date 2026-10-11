@@ -17,8 +17,8 @@ export default function LoginPage() {
   }
 
   return <main className="login-page"><form className="login-panel" onSubmit={submit}>
-    <p className="eyebrow">Gabriela & Josemar</p>
-    <h1>Convites de casamento</h1>
+    <p className="eyebrow">Organização de eventos</p>
+    <h1>Convites</h1>
     <p className="muted">Entre para organizar convidados, mensagens e confirmações.</p>
     {error && <p className="error">{error}</p>}
     <label>Usuário<input value={username} onChange={(event) => setUsername(event.target.value)} required /></label>

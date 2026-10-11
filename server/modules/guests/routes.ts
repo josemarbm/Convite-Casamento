@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { authenticateRequest } from '../../lib/auth.js';
+import { requireActiveEvent } from '../../lib/event-context.js';
 
 type GuestsRoutesOptions = {
   db: PrismaClient;
@@ -35,10 +36,12 @@ export async function registerGuestsRoutes(app: FastifyInstance, options: Guests
     if (!await authenticateRequest(request, options.jwtSecret)) {
       return reply.code(401).send({ error: 'Token is missing or invalid' });
     }
+    const event = await requireActiveEvent(request, reply, options.db);
+    if (!event) return;
 
     const page = Math.max(Number(request.query.page ?? 1), 1);
     const perPage = Math.min(Math.max(Number(request.query.per_page ?? 50), 1), 100);
-    const where: Prisma.GuestWhereInput = {};
+    const where: Prisma.GuestWhereInput = { eventId: event.id };
     const search = request.query.search?.trim();
 
     if (search) {
@@ -66,14 +69,19 @@ export async function registerGuestsRoutes(app: FastifyInstance, options: Guests
     if (!await authenticateRequest(request, options.jwtSecret)) {
       return reply.code(401).send({ error: 'Token is missing or invalid' });
     }
+    const event = await requireActiveEvent(request, reply, options.db);
+    if (!event) return;
 
     const { name, phone, group_id: groupId = null } = request.body ?? {};
     if (!name?.trim() || !phone?.trim()) {
       return reply.code(400).send({ error: 'Name and phone are required' });
     }
+    if (groupId !== null && !await options.db.group.findFirst({ where: { id: groupId, eventId: event.id } })) {
+      return reply.code(400).send({ error: 'Group does not belong to the active event' });
+    }
 
     const guest = await options.db.guest.create({
-      data: { name: name.trim(), phone: phone.trim(), groupId },
+      data: { eventId: event.id, name: name.trim(), phone: phone.trim(), groupId },
       include: { group: true },
     });
     return reply.code(201).send(guestResponse(guest));
@@ -83,8 +91,15 @@ export async function registerGuestsRoutes(app: FastifyInstance, options: Guests
     if (!await authenticateRequest(request, options.jwtSecret)) {
       return reply.code(401).send({ error: 'Token is missing or invalid' });
     }
+    const event = await requireActiveEvent(request, reply, options.db);
+    if (!event) return;
 
     const { name, phone, group_id: groupId } = request.body ?? {};
+    const existing = await options.db.guest.findFirst({ where: { id: Number(request.params.id), eventId: event.id } });
+    if (!existing) return reply.code(404).send({ error: 'Guest not found in the active event' });
+    if (groupId !== undefined && groupId !== null && !await options.db.group.findFirst({ where: { id: groupId, eventId: event.id } })) {
+      return reply.code(400).send({ error: 'Group does not belong to the active event' });
+    }
     const guest = await options.db.guest.update({
       where: { id: Number(request.params.id) },
       data: { ...(name === undefined ? {} : { name: name.trim() }), ...(phone === undefined ? {} : { phone: phone.trim() }), ...(groupId === undefined ? {} : { groupId }) },
@@ -98,7 +113,11 @@ export async function registerGuestsRoutes(app: FastifyInstance, options: Guests
       return reply.code(401).send({ error: 'Token is missing or invalid' });
     }
 
-    await options.db.guest.delete({ where: { id: Number(request.params.id) } });
+    const event = await requireActiveEvent(request, reply, options.db);
+    if (!event) return;
+    const existing = await options.db.guest.findFirst({ where: { id: Number(request.params.id), eventId: event.id } });
+    if (!existing) return reply.code(404).send({ error: 'Guest not found in the active event' });
+    await options.db.guest.delete({ where: { id: existing.id } });
     return reply.code(204).send();
   });
 }

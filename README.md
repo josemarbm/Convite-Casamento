@@ -83,10 +83,20 @@ make docker-clean     # Limpar tudo (CUIDADO!)
 
 ```bash
 npm install
+npx prisma generate
+npm run db:setup
 npm run dev
 npm test -- --run
 npm run build
 ```
+
+`DATABASE_URL` deve usar o formato do Prisma, por exemplo `mysql://usuario:senha@localhost:3306/convites`. `npm run db:setup` aplica o schema e executa um seed idempotente: os registros legados são associados a um evento inicial de casamento e templates existentes não são sobrescritos. Execute primeiro em um banco de desenvolvimento ou backup verificável; não use comandos de reset em bancos com dados.
+
+### Eventos
+
+O painel permite administrar eventos simultâneos de casamento, aniversário, formatura, batizado e outros tipos personalizados. Cada evento mantém sua lista de convidados, grupos, modelos, imagem, RSVP e agendamentos isolados. Selecione o evento ativo no painel antes de trabalhar nesses recursos. O WhatsApp/Evolution permanece uma configuração compartilhada.
+
+Ao arquivar um evento, os dados e respostas são preservados e os envios agendados pendentes são cancelados. O evento pode ser restaurado depois.
 
 ### EvolutionAPI Standalone
 

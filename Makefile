@@ -40,6 +40,13 @@ help:
 
 # ===== Docker Compose Commands (RECOMENDADO) =====
 
+# verifica se docker network existe, se não cria
+docker-network:
+	@if ! docker network ls | grep "wedding_shared_net"; then \
+		docker network create wedding_shared_net; \
+		echo "🌐 Docker network 'wedding_shared_net' criada"; \
+	fi
+
 # Subir todo o sistema containerizado
 # Subir Infraestrutura (MySQL + EvolutionAPI)
 docker-infra-up:
@@ -48,11 +55,11 @@ docker-infra-up:
 
 # Subir Aplicação Node (API + Frontend)
 docker-app-up:
-	$(COMPOSE) -f docker-compose.yml up -d --build
+	$(COMPOSE) -f docker-compose.yml up -d --build app
 	@echo "🚀 Aplicação iniciada (Backend + Frontend)"
 
 # Subir TUDO
-docker-up: docker-infra-up docker-app-up
+docker-up: docker-network docker-infra-up docker-app-up
 	@echo "✅ Sistema completo iniciado!"
 	@echo "   Monolito:  http://localhost:3000"
 	@echo "   Evolution: http://localhost:8080/manager"

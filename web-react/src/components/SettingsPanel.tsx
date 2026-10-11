@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
-import { apiRequest, uploadFile } from '../api/client';
+import { apiRequest } from '../api/client';
 
 type SettingsState = {
-  couple_name: string;
   evolution_api_url: string;
   evolution_api_key: string;
   evolution_session_id: string;
-  image_path: string;
 };
 
 type EvolutionInstance = {
@@ -17,11 +15,9 @@ type EvolutionInstance = {
 };
 
 const initialSettings: SettingsState = {
-  couple_name: '',
   evolution_api_url: '',
   evolution_api_key: '',
   evolution_session_id: '',
-  image_path: '',
 };
 
 function normalizeQrValue(value: unknown): string | null {
@@ -65,7 +61,6 @@ function normalizeQrValue(value: unknown): string | null {
 
 export default function SettingsPanel() {
   const [settings, setSettings] = useState<SettingsState>(initialSettings);
-  const [imagePreview, setImagePreview] = useState('');
   const [instances, setInstances] = useState<EvolutionInstance[]>([]);
   const [newInstanceName, setNewInstanceName] = useState('');
   const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
@@ -85,18 +80,11 @@ export default function SettingsPanel() {
       .then(([settingsResult, instancesResult]) => {
         if (!isMounted) return;
         setSettings({
-          couple_name: settingsResult.couple_name ?? '',
           evolution_api_url: settingsResult.evolution_api_url ?? '',
           evolution_api_key: settingsResult.evolution_api_key ?? '',
           evolution_session_id: settingsResult.evolution_session_id ?? '',
-          image_path: settingsResult.image_path ?? '',
         });
         setInstances(instancesResult.instances ?? []);
-        if (settingsResult.image_path) {
-          void apiRequest<{ data: string; mimetype: string }>('/images/preview')
-            .then((preview) => setImagePreview(`data:${preview.mimetype};base64,${preview.data}`))
-            .catch(() => setImagePreview(''));
-        }
       })
       .catch((reason) => {
         if (!isMounted) return;
@@ -123,11 +111,9 @@ export default function SettingsPanel() {
 
     try {
       const payload = {
-        couple_name: settings.couple_name,
         evolution_api_url: settings.evolution_api_url,
         evolution_api_key: settings.evolution_api_key,
         evolution_session_id: settings.evolution_session_id,
-        image_path: settings.image_path,
       };
 
       await apiRequest('/settings', {
@@ -140,23 +126,6 @@ export default function SettingsPanel() {
       setError(reason instanceof Error ? reason.message : 'Não foi possível salvar as configurações.');
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function uploadInvitationImage(file: File) {
-    setWorking('image-upload');
-    setError('');
-    setNotice('');
-
-    try {
-      const result = await uploadFile('/images/upload', file) as { path: string; preview: string };
-      setSettings((current) => ({ ...current, image_path: result.path }));
-      setImagePreview(result.preview);
-      setNotice('Imagem do convite enviada com sucesso.');
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Não foi possível enviar a imagem do convite.');
-    } finally {
-      setWorking(null);
     }
   }
 
@@ -293,16 +262,6 @@ export default function SettingsPanel() {
 
       <div className="settings-form">
         <label>
-          Nome dos noivos
-          <input
-            value={settings.couple_name}
-            onChange={(event) => updateField('couple_name', event.target.value)}
-            placeholder="Gabriela & Josemar"
-            disabled={loading}
-          />
-        </label>
-
-        <label>
           Evolution API
           <input
             value={settings.evolution_api_url}
@@ -331,19 +290,6 @@ export default function SettingsPanel() {
             disabled={loading}
           />
         </label>
-
-        <div className="image-upload-field">
-          <span>Caminho da imagem do convite</span>
-          <div className="image-upload-row">
-            <input value={settings.image_path} placeholder="Nenhuma imagem enviada" readOnly disabled={loading} />
-            <label className="secondary-button image-upload-button">
-              {working === 'image-upload' ? 'Enviando...' : 'Escolher imagem'}
-              <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadInvitationImage(file); event.currentTarget.value = ''; }} disabled={loading || working !== null} />
-            </label>
-          </div>
-          {imagePreview && <img className="invitation-image-preview" src={imagePreview} alt="Pré-visualização da imagem do convite" />}
-          <small className="field-help">PNG, JPG, GIF ou WEBP.</small>
-        </div>
 
         <button className="primary-button settings-save" disabled={saving || loading} onClick={saveSettings}>
           {saving ? 'Salvando...' : 'Salvar configurações'}

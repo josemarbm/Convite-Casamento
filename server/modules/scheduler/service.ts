@@ -32,11 +32,13 @@ export class SchedulerService {
     if (!scheduled || scheduled.status !== 'pending') return;
 
     try {
+      if (!scheduled.eventId) throw new Error('Scheduled send has no event');
       const guestIds = scheduled.guestIds ? JSON.parse(scheduled.guestIds) as number[] : [];
       await sendDirect({
         db: this.options.db,
         client: this.options.client,
         sessionId: await this.options.sessionId(),
+        eventId: scheduled.eventId,
         templateId: scheduled.templateId,
         guestIds,
         groupId: scheduled.groupId,

@@ -18,8 +18,32 @@ model User {
   @@map("users")
 }
 
+model Event {
+  id         Int       @id @default(autoincrement())
+  name       String    @db.VarChar(120)
+  eventType  String    @default("wedding") @map("event_type") @db.VarChar(30)
+  customType String?   @map("custom_type") @db.VarChar(80)
+  hosts      String?   @db.VarChar(200)
+  dateTime   DateTime? @map("date_time")
+  location   String?   @db.VarChar(200)
+  address    String?   @db.Text
+  imagePath  String?   @map("image_path") @db.Text
+  systemKey  String?   @unique @map("system_key") @db.VarChar(50)
+  archivedAt DateTime? @map("archived_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  guests         Guest[]
+  groups         Group[]
+  messageTemplates MessageTemplate[]
+  scheduledSends ScheduledSend[]
+
+  @@index([archivedAt])
+  @@map("events")
+}
+
 model Guest {
   id               Int       @id @default(autoincrement())
+  eventId          Int?      @map("event_id")
   name             String    @db.VarChar(200)
   phone            String    @db.VarChar(50)
   groupId          Int?      @map("group_id")
@@ -30,38 +54,47 @@ model Guest {
   rsvpRespondedAt  DateTime? @map("rsvp_responded_at")
   createdAt        DateTime  @default(now()) @map("created_at")
 
+  event Event? @relation(fields: [eventId], references: [id])
   group Group? @relation(fields: [groupId], references: [id])
 
+  @@index([eventId])
   @@index([groupId])
   @@map("guests")
 }
 
 model MessageTemplate {
   id        Int      @id @default(autoincrement())
+  eventId   Int?     @map("event_id")
   name      String   @db.VarChar(100)
   content   String   @db.Text
   isDefault Boolean? @default(false) @map("is_default")
   createdAt DateTime @default(now()) @map("created_at")
 
+  event          Event?          @relation(fields: [eventId], references: [id])
   scheduledSends ScheduledSend[]
 
+  @@index([eventId])
   @@map("message_templates")
 }
 
 model Group {
   id          Int      @id @default(autoincrement())
+  eventId     Int?     @map("event_id")
   name        String   @db.VarChar(100)
   description String?  @db.Text
   createdAt   DateTime @default(now()) @map("created_at")
 
+  event         Event?          @relation(fields: [eventId], references: [id])
   guests        Guest[]
   scheduledSends ScheduledSend[]
 
+  @@index([eventId])
   @@map("groups")
 }
 
 model ScheduledSend {
   id            Int       @id @default(autoincrement())
+  eventId       Int?      @map("event_id")
   templateId    Int       @map("template_id")
   groupId       Int?      @map("group_id")
   guestIds      String?   @map("guest_ids") @db.Text
@@ -70,9 +103,11 @@ model ScheduledSend {
   createdAt     DateTime  @default(now()) @map("created_at")
   completedAt   DateTime? @map("completed_at")
 
+  event    Event?          @relation(fields: [eventId], references: [id])
   template MessageTemplate @relation(fields: [templateId], references: [id])
   group    Group?          @relation(fields: [groupId], references: [id])
 
+  @@index([eventId])
   @@index([groupId])
   @@index([templateId])
   @@map("scheduled_sends")
