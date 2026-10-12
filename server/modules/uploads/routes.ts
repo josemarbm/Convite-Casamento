@@ -105,6 +105,18 @@ export function workbookFromGuests(guests: Array<{
 }
 
 export async function registerUploadRoutes(app: FastifyInstance, options: Options) {
+  app.post('/api/images/stage', async (request, reply) => {
+    if (!await authenticateRequest(request, options.jwtSecret)) return reply.code(401).send({ error: 'Token is missing or invalid' });
+    const file = await request.file();
+    if (!file || !imageTypes.has(file.mimetype)) return reply.code(400).send({ error: 'Only PNG, JPG, GIF, or WEBP images are accepted' });
+    const uploadDir = path.join(options.uploadDir ?? process.env.UPLOAD_DIR ?? path.resolve('uploads'), 'staging');
+    await mkdir(uploadDir, { recursive: true });
+    const filename = `event-${Date.now()}${path.extname(file.filename).toLowerCase() || '.bin'}`;
+    const target = path.join(uploadDir, filename);
+    await writeFile(target, await file.toBuffer());
+    return { path: target, filename };
+  });
+
   app.get('/api/images/preview', async (request, reply) => {
     if (!await authenticateRequest(request, options.jwtSecret)) return reply.code(401).send({ error: 'Token is missing or invalid' });
     const event = await requireActiveEvent(request, reply, options.db);

@@ -1,6 +1,6 @@
 # API Documentation - Node.js Monolith
 
-> A API principal agora é servida pelo Fastify em `http://localhost:3000/api`. Este arquivo preserva a documentação histórica do Flask durante a transição.
+> A API principal é servida pelo Fastify em `http://localhost:3000/api`. As referências históricas ao Flask abaixo são mantidas apenas para contexto.
 
 A documentação interativa da API foi implementada usando **Flasgger**, uma ferramenta que integra Swagger/OpenAPI com Flask.
 
@@ -12,12 +12,12 @@ Os endpoints abaixo pertencem à API Fastify atual. Eles não estão publicados 
 
 - `GET /api/events` - Listar eventos ativos autenticados
 - `GET /api/events?archived=true` - Listar eventos arquivados
-- `POST /api/events` - Criar evento e seu template inicial
+- `POST /api/events` - Criar evento, sua imagem e seu template inicial
 - `PUT /api/events/:id` - Atualizar dados do evento
 - `POST /api/events/:id/archive` - Arquivar e cancelar envios pendentes
 - `POST /api/events/:id/restore` - Restaurar evento arquivado
 
-Tipos aceitos: `wedding`, `birthday`, `graduation`, `baptism` e `other`. O tipo `other` requer `custom_type`. Os campos de evento incluem `name`, `hosts`, `date_time`, `location` e `address`.
+Tipos aceitos: `wedding`, `birthday`, `graduation`, `baptism` e `other`. O tipo `other` requer `custom_type`. Os campos de evento incluem `name`, `hosts`, `date_time`, `location`, `address` e `image_path`. Eventos novos exigem um caminho de imagem válido; use `POST /api/images/stage` antes de criar o evento.
 
 ### Contexto de evento
 
@@ -25,7 +25,7 @@ As chamadas autenticadas de convidados, grupos, templates, envio, imagem e impor
 
 O evento criado recebe um template editável conforme seu tipo, com estes placeholders: `{nome}`, `{hosts}`, `{event_name}`, `{event_type}`, `{event_date}`, `{event_time}`, `{event_date_time}`, `{event_location}`, `{event_address}`, `{rsvp_url}` e `{token}`. `{couple_name}` continua aceito como alias de `{hosts}` para preservar templates existentes.
 
-O RSVP público usa o token individual em `/api/rsvp/:token`, não exige `X-Event-Id` e devolve os dados do evento associado. As respostas continuam sendo `confirmed` e `declined` para todos os tipos.
+O RSVP público usa o token individual em `/api/rsvp/:token`, não exige `X-Event-Id` e devolve os dados do evento associado, incluindo `image_url` quando há imagem. A imagem é servida por `/api/rsvp/:token/image`. As respostas continuam sendo `confirmed` e `declined` para todos os tipos.
 
 Na inicialização, `npm run db:setup` usa `prisma db push` e executa o backfill idempotente do evento legado. O backfill preserva tokens/respostas, associa apenas linhas ainda sem evento e mantém os templates customizados existentes. Teste a atualização em uma cópia do banco antes de produção.
 
@@ -81,6 +81,15 @@ http://localhost:3000/docs
 - `POST /api/send/schedule` - Agendar envio
 - `GET /api/send/scheduled` - Listar envios agendados
 - `DELETE /api/send/scheduled/<id>` - Cancelar envio agendado
+
+### ✅ Imagens
+- `POST /api/images/stage` - Enviar imagem antes de criar um evento
+- `GET /api/images/preview` - Pré-visualizar a imagem do evento ativo
+- `POST /api/images/upload` - Atualizar a imagem do evento ativo
+
+### Filtros de convidados
+
+`GET /api/guests` aceita `page`, `per_page`, `search`, `status`, `rsvp_status` e `group_id`. A resposta contém `total`, `page`, `per_page` e `pages`.
 
 ---
 

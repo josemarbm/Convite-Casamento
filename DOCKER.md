@@ -92,6 +92,7 @@ env_file:
 docker-compose up app
 
 # Edite web-react/ e execute npm run dev para hot reload
+# O frontend legado em web/ não é mais utilizado.
 ```
 
 ### Build e Deploy

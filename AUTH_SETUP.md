@@ -1,12 +1,14 @@
 # Sistema de Autenticação - Convites de Casamento 🔐
 
+> Nota: este guia foi atualizado para o monólito Fastify/React. Exemplos históricos de Flask abaixo devem ser interpretados apenas como referência de migração; use a porta `3000` e a aplicação em `/`.
+
 ## 📝 Descrição
 
 Sistema completo de autenticação com JWT (JSON Web Token) para proteger o frontend e backend.
 
 ## ✅ Características Implementadas
 
-### Backend (API Flask)
+### Backend (API Fastify)
 - ✅ Modelo de usuário com hash de senha (Werkzeug)
 - ✅ Autenticação com JWT (Token de 30 dias)
 - ✅ Endpoints de login e registro
@@ -14,7 +16,7 @@ Sistema completo de autenticação com JWT (JSON Web Token) para proteger o fron
 - ✅ Endpoints protegidos: Guests, Templates, Groups, Configurações
 - ✅ Validação de sessão automática
 
-### Frontend (HTML/JavaScript)
+### Frontend (React)
 - ✅ Página de login responsiva
 - ✅ Página de registro de novos usuários
 - ✅ Armazenamento seguro do token no localStorage
@@ -35,7 +37,7 @@ Email: admin@casamento.com
 
 ### 1. Acessar o Sistema
 
-1. Acesse: `http://localhost:3000/login.html`
+1. Acesse: `http://localhost:3000/`
 2. Faça login com as credenciais padrão
 3. Será redirecionado automaticamente para o dashboard
 
@@ -139,7 +141,7 @@ DELETE /api/groups/<id>        - Deletar grupo
 
 ### 1. Fazer Login
 ```bash
-curl -X POST http://localhost:5000/api/auth/login \
+curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "username": "admin",
@@ -149,18 +151,66 @@ curl -X POST http://localhost:5000/api/auth/login \
 
 ### 2. Usar Token para Requisições
 ```bash
-curl -X GET http://localhost:5000/api/guests \
+curl -X GET http://localhost:3000/api/guests \
   -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc..."
 ```
 
 ### 3. Registrar Novo Usuário
 ```bash
-curl -X POST http://localhost:5000/api/auth/register \
+curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "username": "maria",
     "email": "maria@exemplo.com",
     "password": "senha456"
+  }'
+```
+
+### 4. Templates de Mensagem
+
+#### Listar Templates
+```bash
+curl -X GET http://localhost:3000/api/templates \
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc..."
+```
+
+#### Criar Template
+```bash
+curl -X POST http://localhost:3000/api/templates \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc..." \
+  -d '{
+    "name": "Modelo Padrão",
+    "content": "Olá {nome}! Você está convidado para {event_name} em {event_date_time} em {event_location}. Confirmar em {rsvp_url}"
+  }'
+```
+
+#### Atualizar Template
+```bash
+curl -X PUT http://localhost:3000/api/templates/1 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc..." \
+  -d '{
+    "name": "Modelo Atualizado",
+    "is_default": true
+  }'
+```
+
+#### Excluir Template
+```bash
+curl -X DELETE http://localhost:3000/api/templates/1 \
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc..."
+```
+```
+⚠️ **Nota:** Não é possível excluir o template padrão. Defina outro template como padrão antes de excluir.
+
+#### Definir Template Padrão
+```bash
+curl -X PUT http://localhost:3000/api/templates/1 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc..." \
+  -d '{
+    "is_default": true
   }'
 ```
 
@@ -188,7 +238,7 @@ curl -X POST http://localhost:5000/api/auth/register \
 ## 🔄 Fluxo de Autenticação
 
 ```
-1. Usuário acessa /login.html
+1. Usuário acessa /
    ↓
 2. Preenche credenciais e clica "Entrar"
    ↓
@@ -263,7 +313,7 @@ default_user.set_password('nova_senha_aqui')
 - [JWT.io](https://jwt.io/)
 - [PyJWT Documentation](https://pyjwt.readthedocs.io/)
 - [Werkzeug Security](https://werkzeug.palletsprojects.com/en/2.3.x/security/)
-- [Flask Official Docs](https://flask.palletsprojects.com/)
+- [Fastify Documentation](https://fastify.dev/docs/latest/)
 
 ---
 

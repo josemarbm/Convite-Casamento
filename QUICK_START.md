@@ -36,6 +36,26 @@ Senha: admin123
 
 ✅ **Pronto! Você está dentro do sistema.**
 
+### 📝 Gerenciar Templates (Opcional)
+
+Após fazer login, você pode criar e gerenciar templates de mensagem no painel dashboard:
+
+1. Acesse o painel principal em `http://localhost:3000`
+2. Clique em "Templates de mensagem" na seção "Comunicação"
+3. Clique em "Criar template" para criar um novo modelo
+4. Use os campos `{nome}`, `{event_name}`, `{event_date_time}`, `{event_location}`, `{event_address}`, `{hosts}` e `{rsvp_url}` para personalizar a mensagem
+5. Visualize a prévia da conversa no WhatsApp antes de salvar
+6. Defina um template como "padrão" para ser usado automaticamente nas envios
+
+**Campos disponíveis:**
+- `{nome}` - Nome do convidado
+- `{event_name}` - Nome do evento
+- `{event_date_time}` - Data e hora do evento
+- `{event_location}` - Local do evento
+- `{event_address}` - Endereço do evento
+- `{hosts}` - Nomes dos anfitriões
+- `{rsvp_url}` - Link de confirmação RSVP
+
 ---
 
 ## 📚 Documentação
@@ -112,10 +132,13 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 ### ✅ Dashboard
 - Gerenciar convidados
+- Buscar, filtrar e paginar convidados
 - Criar templates de mensagens
 - Organizar em grupos
 - Enviar convites por WhatsApp
 - Agendar envios
+- Criar eventos com imagem obrigatória
+- RSVP público com apresentação editorial do convite
 
 ### ✅ Autenticação
 - Login seguro com JWT
