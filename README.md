@@ -49,6 +49,7 @@ Senha: admin123
 - ✅ **Volumes persistentes** (Dados salvos)
 - ✅ **Network isolada** (Comunicação segura)
 - ✅ **Swagger/OpenAPI** (Documentação automática da API)
+- ✅ **Templates de Mensagem** (Criação e gestão de templates personalizados para WhatsApp)
 
 ## 🎯 Arquitetura
 
@@ -303,7 +304,7 @@ Use Docker Compose ou Kubernetes managed services.
 ## 📚 Documentação Adicional
 
 - [Backend API](api/README.md)
-- [Frontend](web/README.md)
+- Frontend React: `web-react/`
 - [Docker Details](DOCKER.md)
 
 ## 🎉 Pronto para Usar!

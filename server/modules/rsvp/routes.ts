@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
 import { EVENT_TYPE_LABELS, EVENT_TYPES, type EventType } from '../events/presets.js';
@@ -7,11 +9,15 @@ type RsvpRoutesOptions = {
   db: PrismaClient;
 };
 
+function imageMimeType(filePath: string) {
+  return ({ '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp' } as Record<string, string>)[path.extname(filePath).toLowerCase()] ?? 'application/octet-stream';
+}
+
 function tokenHash(token: string) {
   return createHash('sha256').update(token).digest('hex');
 }
 
-function rsvpResponse(guest: { name: string; companionLimit: number; companions: { name: string }[]; rsvpStatus: string; rsvpRespondedAt: Date | null; event: { name: string; eventType: string; customType: string | null; hosts: string | null; dateTime: Date | null; location: string | null; address: string | null } | null }) {
+function rsvpResponse(guest: { name: string; companionLimit: number; companions: { name: string }[]; rsvpStatus: string; rsvpRespondedAt: Date | null; event: { id: number; name: string; eventType: string; customType: string | null; hosts: string | null; dateTime: Date | null; location: string | null; address: string | null; imagePath: string | null } | null }, token: string) {
   const event = guest.event;
   const eventType = event ? EVENT_TYPES.find((type) => type === event.eventType) ?? 'other' : null;
   return {
@@ -28,6 +34,7 @@ function rsvpResponse(guest: { name: string; companionLimit: number; companions:
       date_time: event.dateTime?.toISOString() ?? null,
       location: event.location,
       address: event.address,
+      image_url: event.imagePath ? `/api/rsvp/${encodeURIComponent(token)}/image` : null,
     } : null,
   };
 }
@@ -39,7 +46,18 @@ export async function registerRsvpRoutes(app: FastifyInstance, options: RsvpRout
       return reply.code(404).send({ error: 'Invitation not found' });
     }
 
-    return rsvpResponse(guest);
+    return rsvpResponse(guest, request.params.token);
+  });
+
+  app.get<{ Params: { token: string } }>('/api/rsvp/:token/image', async (request, reply) => {
+    const guest = await options.db.guest.findUnique({ where: { rsvpTokenHash: tokenHash(request.params.token) }, include: { event: true } });
+    if (!guest?.event?.imagePath) return reply.code(404).send({ error: 'Invitation image not found' });
+    try {
+      const image = await readFile(guest.event.imagePath);
+      return reply.type(imageMimeType(guest.event.imagePath)).send(image);
+    } catch {
+      return reply.code(404).send({ error: 'Invitation image not found' });
+    }
   });
 
   app.post<{ Params: { token: string }; Body: { response?: string; companions?: unknown } }>('/api/rsvp/:token', async (request, reply) => {
@@ -113,6 +131,6 @@ export async function registerRsvpRoutes(app: FastifyInstance, options: RsvpRout
       return reply.code(409).send({ error: 'RSVP has already been answered' });
     }
 
-    return rsvpResponse(updated);
+    return rsvpResponse(updated, request.params.token);
   });
 }

@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthProvider';
 import AppShell from '../components/AppShell';
 import GroupManagement from '../components/GroupManagement';
 import GuestList from '../components/GuestList';
+import GuestListControls from '../components/GuestListControls';
 import SettingsPanel from '../components/SettingsPanel';
 import ScheduleManagement from '../components/ScheduleManagement';
 import TemplateManagement from '../components/TemplateManagement';
@@ -13,7 +14,7 @@ import CompanionEditor from '../components/CompanionEditor';
 import { useEvents } from '../events/EventProvider';
 
 type Guest = { id: number; name: string; phone: string; group_id: number | null; group_name: string | null; companion_limit?: number; companions?: string[]; status: string; rsvp_status: string };
-type GuestPage = { guests: Guest[]; total: number; pages: number };
+type GuestPage = { guests: Guest[]; total: number; page?: number; pages: number };
 type GuestGroup = { id: number; name: string; description: string | null; guest_count: number; created_at: string };
 
 export default function DashboardPage() {
@@ -34,11 +35,19 @@ export default function DashboardPage() {
   const [workingGuestId, setWorkingGuestId] = useState<number | null>(null);
   const [resendingGuestId, setResendingGuestId] = useState<number | null>(null);
   const [sendingMode, setSendingMode] = useState<'pending' | 'all' | null>(null);
+  const [guestSearch, setGuestSearch] = useState('');
+  const [guestStatus, setGuestStatus] = useState('');
+  const [guestRsvpStatus, setGuestRsvpStatus] = useState('');
+  const [guestPage, setGuestPage] = useState(1);
 
   async function loadGuests() {
     setLoading(true);
     try {
-      setData(await apiRequest<GuestPage>('/guests?per_page=20'));
+      const params = new URLSearchParams({ per_page: '20', page: String(guestPage) });
+      if (guestSearch.trim()) params.set('search', guestSearch.trim());
+      if (guestStatus) params.set('status', guestStatus);
+      if (guestRsvpStatus) params.set('rsvp_status', guestRsvpStatus);
+      setData(await apiRequest<GuestPage>(`/guests?${params.toString()}`));
       setError('');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Não foi possível carregar os convidados.');
@@ -67,7 +76,7 @@ export default function DashboardPage() {
     }
     void loadGuests();
     apiRequest<GuestGroup[]>('/groups').then(setGroups).catch(() => setGroups([]));
-  }, [activeEvent?.id, activeSection, eventsLoading]);
+  }, [activeEvent?.id, activeSection, eventsLoading, guestPage, guestSearch, guestStatus, guestRsvpStatus]);
 
   async function importGuests(file: File) {
     try { const result = await uploadFile('/guests/import', file); setNotice(`${result.imported} convidados importados.`); await loadGuests(); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Importação falhou.'); }
@@ -201,7 +210,7 @@ export default function DashboardPage() {
 
   const guests = data?.guests ?? [];
   function renderWorkspace() {
-    if (eventsLoading) return <div className="workspace-panel management-loading">Carregando eventos...</div>;
+    if (eventsLoading) return <div className="workspace-panel management-loading" aria-busy="true">Carregando eventos...</div>;
     if (activeSection === 'events' || !activeEvent) return <EventManagement />;
     if (activeSection === 'overview') return <EventOverview
       events={events}
@@ -224,7 +233,8 @@ export default function DashboardPage() {
       </section>
 
       <section className="workspace-panel guest-workspace">
-        <div className="panel-heading"><div><span className="section-label">Lista atual</span><h2>Convidados</h2><p>Veja o andamento dos convites e das confirmações.</p></div><div className="guest-list-tools"><label className="excel-button">Importar Excel<input type="file" accept=".xlsx,.xls" onChange={(event) => event.target.files?.[0] && importGuests(event.target.files[0])} /></label><button className="excel-button" type="button" onClick={exportGuests}>Exportar Excel</button><span className="page-indicator">Página 1 de {data?.pages ?? '—'}</span></div></div>
+        <div className="panel-heading"><div><span className="section-label">Lista atual</span><h2>Convidados</h2><p>Veja o andamento dos convites e das confirmações.</p></div><div className="guest-list-tools"><label className="excel-button">Importar Excel<input type="file" accept=".xlsx,.xls" onChange={(event) => event.target.files?.[0] && importGuests(event.target.files[0])} /></label><button className="excel-button" type="button" onClick={exportGuests}>Exportar Excel</button></div></div>
+        <GuestListControls search={guestSearch} status={guestStatus} rsvpStatus={guestRsvpStatus} page={data?.page ?? guestPage} pages={data?.pages ?? 1} total={data?.total ?? 0} onSearch={(value) => { setGuestSearch(value); setGuestPage(1); }} onStatus={(value) => { setGuestStatus(value); setGuestPage(1); }} onRsvpStatus={(value) => { setGuestRsvpStatus(value); setGuestPage(1); }} onPage={setGuestPage} />
         {notice && <p className="inline-notice" role="status">{notice}</p>}
         {error ? <div className="inline-error" role="alert"><strong>Não foi possível atualizar a lista.</strong><span>{error}</span><button className="text-action" type="button" onClick={() => void loadGuests()}>Tentar novamente</button></div> : <GuestList guests={guests} loading={loading} workingId={workingGuestId} resendingId={resendingGuestId} sendingAll={sendingMode !== null} onEdit={startEditingGuest} onDelete={deleteGuest} onResend={resendInvitation} />}
       </section>
@@ -232,7 +242,7 @@ export default function DashboardPage() {
   }
 
   return <AppShell activeSection={activeSection} username={user?.username} onNavigate={setActiveSection} onLogout={logout}>
-    <header className="workspace-header"><div><span className="section-label">{activeSection === 'overview' ? 'Todos os eventos' : activeEvent?.event_type_label ?? 'Organização'}</span><h1>{activeSection === 'overview' ? 'Visão geral' : activeSection === 'guests' ? 'Convidados' : activeEvent?.name ?? 'Seus eventos'}</h1><p>{activeSection === 'overview' ? 'Acompanhe convidados e confirmações de cada evento.' : activeEvent ? [activeEvent.name, activeEvent.hosts, activeEvent.location].filter(Boolean).join(' · ') : eventsError || 'Crie seu primeiro evento para começar.'}</p></div><div className="header-actions">{activeSection === 'guests' && <><button className="secondary-button compact-button" type="button" disabled={sendingMode !== null || resendingGuestId !== null || !activeEvent || eventsLoading} onClick={resendAllInvitations}>{sendingMode === 'all' ? 'Reenviando...' : 'Reenviar para todos'}</button><button className="primary-button compact-button" type="button" disabled={sendingMode !== null || resendingGuestId !== null || !activeEvent || eventsLoading} onClick={sendNow}>{sendingMode === 'pending' ? 'Enviando...' : 'Enviar pendentes'}</button></>}</div></header>
+    <header className={`workspace-header ${activeEvent?.image_path && activeSection !== 'overview' ? 'workspace-header-event' : ''}`}><div className="workspace-header-copy">{activeEvent?.image_path && activeSection !== 'overview' && <img className="workspace-header-image" src="/api/images/preview" alt="" />}<div><span className="section-label">{activeSection === 'overview' ? 'Todos os eventos' : activeEvent?.event_type_label ?? 'Organização'}</span><h1>{activeSection === 'overview' ? 'Visão geral' : activeSection === 'guests' ? 'Convidados' : activeEvent?.name ?? 'Seus eventos'}</h1><p>{activeSection === 'overview' ? 'Acompanhe convidados e confirmações de cada evento.' : activeEvent ? [activeEvent.hosts, activeEvent.location].filter(Boolean).join(' · ') : eventsError || 'Crie seu primeiro evento para começar.'}</p></div></div><div className="header-actions">{activeSection === 'guests' && <><button className="secondary-button compact-button" type="button" disabled={sendingMode !== null || resendingGuestId !== null || !activeEvent || eventsLoading} onClick={resendAllInvitations}>{sendingMode === 'all' ? 'Reenviando...' : 'Reenviar para todos'}</button><button className="primary-button compact-button" type="button" disabled={sendingMode !== null || resendingGuestId !== null || !activeEvent || eventsLoading} onClick={sendNow}>{sendingMode === 'pending' ? 'Enviando...' : 'Enviar pendentes'}</button></>}</div></header>
     {renderWorkspace()}
   </AppShell>;
 }

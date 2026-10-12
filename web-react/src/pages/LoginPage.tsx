@@ -20,9 +20,9 @@ export default function LoginPage() {
     <p className="eyebrow">Organização de eventos</p>
     <h1>Convites</h1>
     <p className="muted">Entre para organizar convidados, mensagens e confirmações.</p>
-    {error && <p className="error">{error}</p>}
-    <label>Usuário<input value={username} onChange={(event) => setUsername(event.target.value)} required /></label>
-    <label>Senha<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
+    {error && <p className="error" role="alert">{error}</p>}
+    <label>Usuário<input autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} required /></label>
+    <label>Senha<input autoComplete="current-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
     <button className="primary-button" disabled={submitting}>{submitting ? 'Entrando...' : 'Entrar'}</button>
   </form></main>;
 }

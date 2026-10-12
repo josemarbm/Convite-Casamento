@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { stat } from 'node:fs/promises';
 import type { PrismaClient } from '@prisma/client';
 import { authenticateRequest } from '../../lib/auth.js';
 import { EVENT_TYPE_LABELS, EVENT_TYPES, getEventTemplatePreset, type EventType } from './presets.js';
@@ -41,6 +42,7 @@ function eventInput(body: EventBody, requireName: boolean) {
     return { error: 'A valid event name and type are required' };
   }
   if (eventType === 'other' && !body.custom_type?.trim()) return { error: 'A custom type label is required for other events' };
+  if (requireName && !body.image_path?.trim()) return { error: 'An invitation image is required' };
 
   let dateTime: Date | null | undefined;
   if (body.date_time !== undefined) {
@@ -121,6 +123,7 @@ export async function registerEventRoutes(app: FastifyInstance, options: Options
     if (!await authenticateRequest(request, options.jwtSecret)) return reply.code(401).send({ error: 'Token is missing or invalid' });
     const input = eventInput(request.body ?? {}, true);
     if ('error' in input) return reply.code(400).send({ error: input.error });
+    try { await stat(input.data.imagePath ?? ''); } catch { return reply.code(400).send({ error: 'A valid invitation image is required' }); }
     const eventName = input.data.name;
     if (!eventName) return reply.code(400).send({ error: 'A valid event name and type are required' });
     const eventType = (input.data.eventType ?? 'wedding') as EventType;

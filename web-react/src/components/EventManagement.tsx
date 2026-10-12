@@ -48,10 +48,14 @@ export default function EventManagement() {
   const [form, setForm] = useState<EventForm>(emptyForm);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [image, setImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const [hasExistingImage, setHasExistingImage] = useState(false);
   const [loadingArchived, setLoadingArchived] = useState(false);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+
+  const imageRequired = !editingId || !hasExistingImage;
 
   useEffect(() => {
     if (!showArchived) return;
@@ -72,6 +76,8 @@ export default function EventManagement() {
       address: event.address ?? '',
     });
     setImage(null);
+    setHasExistingImage(Boolean(event.image_path));
+    setImagePreview(event.image_path ? '/api/images/preview' : '');
     setError('');
     setNotice('');
   }
@@ -80,17 +86,20 @@ export default function EventManagement() {
     setEditingId(null);
     setForm(emptyForm);
     setImage(null);
+    setHasExistingImage(false);
+    setImagePreview('');
   }
 
   async function saveEvent() {
-    if (!form.name.trim() || (form.event_type === 'other' && !form.custom_type.trim())) return;
+    if (!form.name.trim() || (form.event_type === 'other' && !form.custom_type.trim()) || (imageRequired && !image)) return;
     setWorking(true);
     setError('');
     setNotice('');
     try {
+      const stagedImage = !editingId && image ? await uploadFile('/images/stage', image) as { path: string } : null;
       const saved = editingId
         ? await apiRequest<ManagedEvent>(`/events/${editingId}`, { method: 'PUT', body: JSON.stringify(eventPayload(form)) })
-        : await apiRequest<ManagedEvent>('/events', { method: 'POST', body: JSON.stringify(eventPayload(form)) });
+        : await apiRequest<ManagedEvent>('/events', { method: 'POST', body: JSON.stringify({ ...eventPayload(form), image_path: stagedImage?.path }) });
       selectEvent(saved.id);
       await refreshEvents();
       if (image) await uploadFile('/images/upload', image);
@@ -163,9 +172,9 @@ export default function EventManagement() {
         <label><span>Data e horário</span><input type="datetime-local" value={form.date_time} onChange={(event) => setForm({ ...form, date_time: event.target.value })} /></label>
         <label><span>Local</span><input value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} /></label>
         <label><span>Endereço</span><input value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} /></label>
-        <label><span>Imagem do convite</span><input type="file" accept="image/png,image/jpeg,image/gif,image/webp" onChange={(event) => setImage(event.target.files?.[0] ?? null)} /></label>
+        <label className="event-image-field"><span>Imagem do convite <small>{imageRequired ? 'obrigatória' : 'opcional'}</small></span><input type="file" accept="image/png,image/jpeg,image/gif,image/webp" required={imageRequired} aria-describedby="event-image-help" onChange={(event) => { const file = event.target.files?.[0] ?? null; setImage(file); setImagePreview(file ? URL.createObjectURL(file) : ''); }} />{imagePreview && <img src={imagePreview} alt="Prévia da imagem do convite" className="event-image-preview" />}{editingId && !image && activeEvent?.image_path && <small className="field-help" id="event-image-help">A imagem atual será mantida se nenhum arquivo novo for escolhido.</small>}{imageRequired && !image && <small className="field-help" id="event-image-help">Use PNG, JPG, GIF ou WEBP. Eventos sem imagem não podem ser publicados.</small>}</label>
       </div>
-      <div className="event-form-actions"><button className="primary-button" type="button" disabled={working || !form.name.trim() || (form.event_type === 'other' && !form.custom_type.trim())} onClick={() => void saveEvent()}>{working ? 'Salvando...' : editingId ? 'Salvar evento' : 'Criar evento'}</button>{editingId && <button className="secondary-button" type="button" disabled={working} onClick={resetForm}>Cancelar edição</button>}</div>
+      <div className="event-form-actions"><button className="primary-button" type="button" disabled={working || !form.name.trim() || (form.event_type === 'other' && !form.custom_type.trim()) || (imageRequired && !image)} onClick={() => void saveEvent()}>{working ? 'Salvando...' : editingId ? 'Salvar evento' : 'Criar evento'}</button>{imageRequired && !image && <span className="form-hint">Escolha uma imagem para continuar.</span>}{editingId && <button className="secondary-button" type="button" disabled={working} onClick={resetForm}>Cancelar edição</button>}</div>
     </div>
     <div className="event-list-heading"><h3>Eventos ativos</h3><span>{events.length}</span></div>
     {events.length ? <div className="management-list event-list">{events.map((event) => renderEvent(event))}</div> : <div className="empty-state compact-empty"><strong>Nenhum evento ativo</strong><p>Crie um evento para começar a organizar convites.</p></div>}

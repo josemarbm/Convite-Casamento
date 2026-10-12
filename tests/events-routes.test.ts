@@ -80,7 +80,7 @@ describe('event routes', () => {
       method: 'POST',
       url: '/api/events',
       headers: await adminHeaders(),
-      payload: { name: 'Festa da Ana', event_type: 'birthday', hosts: 'Ana', date_time: '2027-04-03T19:00:00.000Z', location: 'Salão Azul', address: 'Rua Central, 10' },
+      payload: { name: 'Festa da Ana', event_type: 'birthday', hosts: 'Ana', date_time: '2027-04-03T19:00:00.000Z', location: 'Salão Azul', address: 'Rua Central, 10', image_path: __filename },
     });
 
     expect(response.statusCode).toBe(201);

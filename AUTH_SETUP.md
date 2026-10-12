@@ -164,6 +164,54 @@ curl -X POST http://localhost:5000/api/auth/register \
   }'
 ```
 
+### 4. Templates de Mensagem
+
+#### Listar Templates
+```bash
+curl -X GET http://localhost:5000/api/templates \
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc..."
+```
+
+#### Criar Template
+```bash
+curl -X POST http://localhost:5000/api/templates \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc..." \
+  -d '{
+    "name": "Modelo Padrão",
+    "content": "Olá {nome}! Você está convidado para {event_name} em {event_date_time} em {event_location}. Confirmar em {rsvp_url}"
+  }'
+```
+
+#### Atualizar Template
+```bash
+curl -X PUT http://localhost:5000/api/templates/1 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc..." \
+  -d '{
+    "name": "Modelo Atualizado",
+    "is_default": true
+  }'
+```
+
+#### Excluir Template
+```bash
+curl -X DELETE http://localhost:5000/api/templates/1 \
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc..."
+```
+```
+⚠️ **Nota:** Não é possível excluir o template padrão. Defina outro template como padrão antes de excluir.
+
+#### Definir Template Padrão
+```bash
+curl -X PUT http://localhost:5000/api/templates/1 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc..." \
+  -d '{
+    "is_default": true
+  }'
+```
+
 ## 🔒 Segurança
 
 ### Implementações de Segurança
