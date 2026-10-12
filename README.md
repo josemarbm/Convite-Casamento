@@ -40,6 +40,7 @@ Senha: admin123
 | **[AUTH_SETUP.md](AUTH_SETUP.md)** | 🔐 Sistema de autenticação |
 | **[LOGIN_GUIDE.md](LOGIN_GUIDE.md)** | 🔑 Guia de login |
 | **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** | 📝 Detalhes técnicos |
+| **[docs/FRONTEND.md](docs/FRONTEND.md)** | 🎨 Guia do frontend React e dos fluxos de eventos |
 
 ## 📦 O que está incluído?
 
@@ -98,6 +99,10 @@ npm run build
 O painel permite administrar eventos simultâneos de casamento, aniversário, formatura, batizado e outros tipos personalizados. Cada evento mantém sua lista de convidados, grupos, modelos, imagem, RSVP e agendamentos isolados. Selecione o evento ativo no painel antes de trabalhar nesses recursos. O WhatsApp/Evolution permanece uma configuração compartilhada.
 
 Ao arquivar um evento, os dados e respostas são preservados e os envios agendados pendentes são cancelados. O evento pode ser restaurado depois.
+
+Eventos novos exigem uma imagem de convite. A imagem é enviada para staging antes da criação e o backend rejeita eventos novos sem um `image_path` válido. Eventos antigos sem imagem podem ser migrados ao editá-los no painel.
+
+No painel de convidados, use a busca por nome ou telefone, os filtros de convite e resposta RSVP e a paginação para trabalhar com listas grandes. O RSVP público pode ser acessado por `/rsvp/<token>` ou pelo link compatível `/rsvp.html?token=<token>`.
 
 ### EvolutionAPI Standalone
 

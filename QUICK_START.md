@@ -132,10 +132,13 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 ### ✅ Dashboard
 - Gerenciar convidados
+- Buscar, filtrar e paginar convidados
 - Criar templates de mensagens
 - Organizar em grupos
 - Enviar convites por WhatsApp
 - Agendar envios
+- Criar eventos com imagem obrigatória
+- RSVP público com apresentação editorial do convite
 
 ### ✅ Autenticação
 - Login seguro com JWT
