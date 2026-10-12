@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { apiRequest, uploadFile } from '../api/client';
 import { useEvents, type ManagedEvent } from '../events/EventProvider';
+import ProtectedEventImage from './ProtectedEventImage';
 
 type EventType = 'wedding' | 'birthday' | 'graduation' | 'baptism' | 'other';
 
@@ -77,7 +78,7 @@ export default function EventManagement() {
     });
     setImage(null);
     setHasExistingImage(Boolean(event.image_path));
-    setImagePreview(event.image_path ? '/api/images/preview' : '');
+    setImagePreview(event.image_path ? 'protected' : '');
     setError('');
     setNotice('');
   }
@@ -172,7 +173,7 @@ export default function EventManagement() {
         <label><span>Data e horário</span><input type="datetime-local" value={form.date_time} onChange={(event) => setForm({ ...form, date_time: event.target.value })} /></label>
         <label><span>Local</span><input value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} /></label>
         <label><span>Endereço</span><input value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} /></label>
-        <label className="event-image-field"><span>Imagem do convite <small>{imageRequired ? 'obrigatória' : 'opcional'}</small></span><input type="file" accept="image/png,image/jpeg,image/gif,image/webp" required={imageRequired} aria-describedby="event-image-help" onChange={(event) => { const file = event.target.files?.[0] ?? null; setImage(file); setImagePreview(file ? URL.createObjectURL(file) : ''); }} />{imagePreview && <img src={imagePreview} alt="Prévia da imagem do convite" className="event-image-preview" />}{editingId && !image && activeEvent?.image_path && <small className="field-help" id="event-image-help">A imagem atual será mantida se nenhum arquivo novo for escolhido.</small>}{imageRequired && !image && <small className="field-help" id="event-image-help">Use PNG, JPG, GIF ou WEBP. Eventos sem imagem não podem ser publicados.</small>}</label>
+        <label className="event-image-field"><span>Imagem do convite <small>{imageRequired ? 'obrigatória' : 'opcional'}</small></span><input type="file" accept="image/png,image/jpeg,image/gif,image/webp" required={imageRequired} aria-describedby="event-image-help" onChange={(event) => { const file = event.target.files?.[0] ?? null; setImage(file); setImagePreview(file ? URL.createObjectURL(file) : ''); }} />{imagePreview === 'protected' && <ProtectedEventImage eventId={activeEvent?.id} alt="Prévia da imagem do convite" className="event-image-preview" />}{imagePreview && imagePreview !== 'protected' && <img src={imagePreview} alt="Prévia da imagem do convite" className="event-image-preview" />}{editingId && !image && activeEvent?.image_path && <small className="field-help" id="event-image-help">A imagem atual será mantida se nenhum arquivo novo for escolhido.</small>}{imageRequired && !image && <small className="field-help" id="event-image-help">Use PNG, JPG, GIF ou WEBP. Eventos sem imagem não podem ser publicados.</small>}</label>
       </div>
       <div className="event-form-actions"><button className="primary-button" type="button" disabled={working || !form.name.trim() || (form.event_type === 'other' && !form.custom_type.trim()) || (imageRequired && !image)} onClick={() => void saveEvent()}>{working ? 'Salvando...' : editingId ? 'Salvar evento' : 'Criar evento'}</button>{imageRequired && !image && <span className="form-hint">Escolha uma imagem para continuar.</span>}{editingId && <button className="secondary-button" type="button" disabled={working} onClick={resetForm}>Cancelar edição</button>}</div>
     </div>
